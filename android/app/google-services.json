@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "969371165439",
+    "firebase_url": "https://unimas-foodhub-default-rtdb.firebaseio.com",
+    "project_id": "unimas-foodhub",
+    "storage_bucket": "unimas-foodhub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969371165439:android:cd8d99c174ec66a5c162ca",
+        "android_client_info": {
+          "package_name": "com.example.unimas_foodhub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqQHDVrFtwLu6huoCXgZQYxpjbZTkK9D4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
