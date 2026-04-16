@@ -69,8 +69,8 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 88,
+                    height: 88,
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
@@ -78,7 +78,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                     child: const Icon(Icons.restaurant_menu_outlined,
                         size: 40, color: AppColors.primary),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   const Text(
                     'No menu items yet',
                     style: TextStyle(
@@ -105,10 +105,15 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
+                      elevation: 0,
+                      minimumSize: const Size(0, 48),
+                      maximumSize: const Size(220, 48),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(24)),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                          horizontal: 28, vertical: 14),
+                      textStyle: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/menu_item_model.dart';
 import '../../models/seller_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
@@ -15,6 +17,39 @@ class StallMenuScreen extends StatefulWidget {
 class _StallMenuScreenState extends State<StallMenuScreen> {
   final _db = DatabaseService();
   String _selectedCategory = 'All';
+  bool _isFavorited = false;
+  SellerModel? _seller;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_seller == null) {
+      _seller = ModalRoute.of(context)!.settings.arguments as SellerModel;
+      _loadFavorite();
+    }
+  }
+
+  Future<void> _loadFavorite() async {
+    final customerId = context.read<AuthProvider>().currentUserId;
+    if (customerId.isEmpty) return;
+    final result = await _db.isFavoriteStall(customerId, _seller!.uid);
+    if (mounted) setState(() => _isFavorited = result);
+  }
+
+  Future<void> _toggleFavorite() async {
+    final customerId = context.read<AuthProvider>().currentUserId;
+    if (customerId.isEmpty) return;
+    final next = !_isFavorited;
+    setState(() => _isFavorited = next);
+    await _db.setFavoriteStall(customerId, _seller!.uid, next);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(next ? 'Added to favourites' : 'Removed from favourites'),
+        duration: const Duration(seconds: 2),
+        backgroundColor: next ? AppColors.success : AppColors.textSecondary,
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +85,12 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.favorite_border,
-                      color: Colors.white, size: 18),
-                  onPressed: () {},
+                  icon: Icon(
+                    _isFavorited ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorited ? Colors.red[300] : Colors.white,
+                    size: 18,
+                  ),
+                  onPressed: _toggleFavorite,
                   constraints: const BoxConstraints(
                       minWidth: 36, minHeight: 36),
                   padding: EdgeInsets.zero,

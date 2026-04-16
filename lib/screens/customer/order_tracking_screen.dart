@@ -291,7 +291,18 @@ class OrderTrackingScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // Rating card — only when completed and not yet rated
+                if (current.status == AppConstants.statusCompleted &&
+                    current.rating == null)
+                  _RatingCard(order: current, db: db),
+
+                if (current.status == AppConstants.statusCompleted &&
+                    current.rating != null)
+                  _RatedCard(rating: current.rating!),
+
+                const SizedBox(height: 16),
 
                 // Back to home button
                 SizedBox(
@@ -461,6 +472,168 @@ class _StepConnector extends StatelessWidget {
         width: 2,
         height: 28,
         color: done ? AppColors.success : AppColors.border,
+      ),
+    );
+  }
+}
+
+// ─── Rating Card (unrated completed order) ────────────────────────────────────
+
+class _RatingCard extends StatefulWidget {
+  final OrderModel order;
+  final DatabaseService db;
+  const _RatingCard({required this.order, required this.db});
+
+  @override
+  State<_RatingCard> createState() => _RatingCardState();
+}
+
+class _RatingCardState extends State<_RatingCard> {
+  int _selected = 0;
+  bool _submitting = false;
+
+  Future<void> _submit() async {
+    if (_selected == 0) return;
+    setState(() => _submitting = true);
+    await widget.db.rateOrder(
+        widget.order.id, widget.order.sellerId, _selected);
+    // Stream will update order.rating — card swaps automatically
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'How was your order?',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.order.stallName,
+            style: const TextStyle(
+                fontSize: 13, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (i) {
+              final star = i + 1;
+              return GestureDetector(
+                onTap: () => setState(() => _selected = star),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Icon(
+                    star <= _selected ? Icons.star : Icons.star_border,
+                    size: 36,
+                    color: star <= _selected
+                        ? AppColors.popular
+                        : AppColors.border,
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton(
+              onPressed: (_selected == 0 || _submitting) ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                disabledBackgroundColor: AppColors.border,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: _submitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text(
+                      'Submit Rating',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Already Rated Card ───────────────────────────────────────────────────────
+
+class _RatedCard extends StatelessWidget {
+  final int rating;
+  const _RatedCard({required this.rating});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.check_circle, color: AppColors.success, size: 32),
+          const SizedBox(height: 8),
+          const Text(
+            'Thanks for your rating!',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (i) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  i < rating ? Icons.star : Icons.star_border,
+                  size: 28,
+                  color: i < rating ? AppColors.popular : AppColors.border,
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }

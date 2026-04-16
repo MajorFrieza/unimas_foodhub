@@ -15,11 +15,11 @@ class SellerScaffold extends StatefulWidget {
 class _SellerScaffoldState extends State<SellerScaffold> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    SellerDashboardScreen(),
-    SellerOrdersScreen(),
-    MenuManagementScreen(),
-    SellerSettingsScreen(),
+  List<Widget> get _pages => [
+    SellerDashboardScreen(onSwitchTab: (i) => setState(() => _currentIndex = i)),
+    const SellerOrdersScreen(),
+    const MenuManagementScreen(),
+    const SellerSettingsScreen(),
   ];
 
   @override

@@ -43,9 +43,17 @@ class OrderHistoryScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.receipt_long_outlined,
-                      size: 56, color: AppColors.textHint),
-                  const SizedBox(height: 16),
+                  Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.receipt_long_outlined,
+                        size: 40, color: AppColors.primary),
+                  ),
+                  const SizedBox(height: 20),
                   const Text(
                     'No orders yet',
                     style: TextStyle(
@@ -57,20 +65,29 @@ class OrderHistoryScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   const Text(
                     'Your order history will appear here',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                         fontSize: 14, color: AppColors.textSecondary),
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
+                  const SizedBox(height: 28),
+                  ElevatedButton.icon(
                     onPressed: () =>
-                        Navigator.pushNamed(context, '/customer/search'),
+                        Navigator.pushNamed(context, '/customer/home'),
+                    icon: const Icon(Icons.storefront_outlined, size: 18),
+                    label: const Text('Start Ordering'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
+                      elevation: 0,
+                      minimumSize: const Size(0, 48),
+                      maximumSize: const Size(220, 48),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(24)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 28, vertical: 14),
+                      textStyle: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600),
                     ),
-                    child: const Text('Start Ordering'),
                   ),
                 ],
               ),

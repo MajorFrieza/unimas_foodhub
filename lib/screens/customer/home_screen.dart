@@ -190,6 +190,59 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+            // My Favourites (only shown when the customer has saved stalls)
+            SliverToBoxAdapter(
+              child: StreamBuilder<List<String>>(
+                stream: _db.favouriteStallIdsStream(auth.currentUserId),
+                builder: (context, favSnap) {
+                  final favIds = favSnap.data ?? [];
+                  if (favIds.isEmpty) return const SizedBox.shrink();
+                  return StreamBuilder<List<SellerModel>>(
+                    stream: _db.sellersStream(),
+                    builder: (context, sellerSnap) {
+                      final favSellers = (sellerSnap.data ?? [])
+                          .where((s) => favIds.contains(s.uid))
+                          .toList();
+                      if (favSellers.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+                            child: Text(
+                              'My Favourites',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            height: 116,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: favSellers.length,
+                              itemBuilder: (context, i) => _FavouriteStallCard(
+                                seller: favSellers[i],
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/customer/menu',
+                                  arguments: favSellers[i],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+
             // Popular Right Now
             SliverToBoxAdapter(
               child: Padding(
@@ -560,6 +613,97 @@ class _RestaurantCard extends StatelessWidget {
         child: const Center(
           child: Icon(Icons.storefront_outlined,
               color: AppColors.primary, size: 28),
+        ),
+      );
+}
+
+class _FavouriteStallCard extends StatelessWidget {
+  final SellerModel seller;
+  final VoidCallback onTap;
+
+  const _FavouriteStallCard({required this.seller, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 130,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              child: SizedBox(
+                height: 68,
+                width: double.infinity,
+                child: seller.imageUrl != null && seller.imageUrl!.isNotEmpty
+                    ? Image.network(seller.imageUrl!, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _placeholder())
+                    : _placeholder(),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    seller.stallName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: seller.isOpen ? AppColors.success : AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        seller.isOpen ? 'Open' : 'Closed',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: seller.isOpen ? AppColors.success : AppColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholder() => Container(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        child: const Center(
+          child: Icon(Icons.storefront_outlined, color: AppColors.primary, size: 26),
         ),
       );
 }

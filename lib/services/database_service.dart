@@ -40,6 +40,40 @@ class DatabaseService {
     await _db.ref('${AppConstants.usersPath}/$uid').update(updates);
   }
 
+  Stream<List<String>> favouriteStallIdsStream(String customerId) {
+    return _db
+        .ref('${AppConstants.usersPath}/$customerId/favorites')
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) return [];
+      final map = event.snapshot.value as Map<dynamic, dynamic>;
+      return map.entries
+          .where((e) => e.value == true)
+          .map((e) => e.key.toString())
+          .toList();
+    });
+  }
+
+  Future<bool> isFavoriteStall(String customerId, String sellerId) async {
+    final snap = await _db
+        .ref('${AppConstants.usersPath}/$customerId/favorites/$sellerId')
+        .get();
+    return snap.value == true;
+  }
+
+  Future<void> setFavoriteStall(
+      String customerId, String sellerId, bool value) async {
+    if (value) {
+      await _db
+          .ref('${AppConstants.usersPath}/$customerId/favorites/$sellerId')
+          .set(true);
+    } else {
+      await _db
+          .ref('${AppConstants.usersPath}/$customerId/favorites/$sellerId')
+          .remove();
+    }
+  }
+
   // ─── Menu Items ───────────────────────────────────────────────────────────
 
   Stream<List<MenuItemModel>> menuItemsStream(String sellerId) {
@@ -159,5 +193,36 @@ class DatabaseService {
     await _db
         .ref('${AppConstants.ordersPath}/$orderId/status')
         .set(status);
+  }
+
+  /// Saves a rating on the order then recalculates the seller's average.
+  Future<void> rateOrder(String orderId, String sellerId, int rating) async {
+    // 1. Write rating onto the order
+    await _db
+        .ref('${AppConstants.ordersPath}/$orderId/rating')
+        .set(rating);
+
+    // 2. Fetch all orders for this seller and compute average of rated ones
+    final snap = await _db
+        .ref(AppConstants.ordersPath)
+        .orderByChild('sellerId')
+        .equalTo(sellerId)
+        .get();
+
+    if (!snap.exists) return;
+    final map = snap.value as Map<dynamic, dynamic>;
+    final ratings = map.values
+        .map((v) => (v as Map<dynamic, dynamic>)['rating'])
+        .where((r) => r != null)
+        .map((r) => (r as num).toDouble())
+        .toList();
+
+    if (ratings.isEmpty) return;
+    final avg = ratings.reduce((a, b) => a + b) / ratings.length;
+
+    // 3. Update seller's rating field
+    await _db
+        .ref('${AppConstants.sellersPath}/$sellerId/rating')
+        .set(double.parse(avg.toStringAsFixed(1)));
   }
 }

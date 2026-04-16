@@ -7,7 +7,8 @@ import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
 
 class SellerDashboardScreen extends StatelessWidget {
-  const SellerDashboardScreen({super.key});
+  final ValueChanged<int>? onSwitchTab;
+  const SellerDashboardScreen({super.key, this.onSwitchTab});
 
   @override
   Widget build(BuildContext context) {
@@ -171,7 +172,7 @@ class SellerDashboardScreen extends StatelessWidget {
                           child: _ActionCard(
                             icon: Icons.restaurant_menu_outlined,
                             label: 'View Menu',
-                            onTap: () {},
+                            onTap: () => onSwitchTab?.call(2),
                           ),
                         ),
                       ],
@@ -195,7 +196,7 @@ class SellerDashboardScreen extends StatelessWidget {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () => onSwitchTab?.call(1),
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: Size.zero,

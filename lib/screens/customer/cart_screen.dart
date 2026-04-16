@@ -478,7 +478,7 @@ class _EmptyCart extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           ElevatedButton.icon(
-            onPressed: onBrowse,
+            onPressed: onBrowse ?? () => Navigator.pushNamedAndRemoveUntil(context, '/customer/home', (_) => false),
             icon: const Icon(Icons.storefront_outlined, size: 18),
             label: const Text('Browse Restaurants'),
             style: ElevatedButton.styleFrom(
