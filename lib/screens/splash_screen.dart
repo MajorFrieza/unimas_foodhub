@@ -51,14 +51,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (authProvider.isAuthenticated) {
       if (authProvider.isCustomer) {
-        Navigator.of(context)
-            .pushReplacementNamed('/customer/stalls');
+        Navigator.of(context).pushReplacementNamed('/customer/home');
       } else {
-        Navigator.of(context)
-            .pushReplacementNamed('/seller/home');
+        Navigator.of(context).pushReplacementNamed('/seller/home');
       }
     } else {
-      Navigator.of(context).pushReplacementNamed('/role-selection');
+      Navigator.of(context).pushReplacementNamed('/welcome');
     }
   }
 
@@ -71,54 +69,71 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: ScaleTransition(
-            scale: _scaleAnim,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      )
-                    ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.primary, AppColors.primaryDark],
+          ),
+        ),
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: ScaleTransition(
+              scale: _scaleAnim,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        )
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.restaurant_menu,
+                      size: 60,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.restaurant_menu,
-                    size: 60,
-                    color: AppColors.primary,
+                  const SizedBox(height: 24),
+                  const Text(
+                    'UNIMAS FoodHub',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'UNIMAS FoodHub',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Smart Campus Food Ordering',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Order food from your campus stalls',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
+                  const SizedBox(height: 48),
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      strokeWidth: 2.5,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

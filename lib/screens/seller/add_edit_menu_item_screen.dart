@@ -12,8 +12,7 @@ class AddEditMenuItemScreen extends StatefulWidget {
   const AddEditMenuItemScreen({super.key});
 
   @override
-  State<AddEditMenuItemScreen> createState() =>
-      _AddEditMenuItemScreenState();
+  State<AddEditMenuItemScreen> createState() => _AddEditMenuItemScreenState();
 }
 
 class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
@@ -21,8 +20,12 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
-  String _selectedCategory = AppConstants.menuCategories[1]; // 'Rice' default
+  final _prepTimeCtrl = TextEditingController();
+  final _caloriesCtrl = TextEditingController();
+
+  String _selectedCategory = AppConstants.menuCategories[1];
   bool _isAvailable = true;
+  bool _isPopular = false;
   bool _isSaving = false;
 
   MenuItemModel? _existingItem;
@@ -39,6 +42,9 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
       _priceCtrl.text = arg.price.toStringAsFixed(2);
       _selectedCategory = arg.category;
       _isAvailable = arg.isAvailable;
+      _isPopular = arg.isPopular;
+      _prepTimeCtrl.text = arg.prepTime > 0 ? '${arg.prepTime}' : '';
+      _caloriesCtrl.text = arg.calories > 0 ? '${arg.calories}' : '';
     }
   }
 
@@ -47,18 +53,21 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
     _nameCtrl.dispose();
     _descCtrl.dispose();
     _priceCtrl.dispose();
+    _prepTimeCtrl.dispose();
+    _caloriesCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
-
     setState(() => _isSaving = true);
 
     final uid = context.read<AuthProvider>().currentUserId;
     final db = DatabaseService();
     final price = double.parse(_priceCtrl.text.trim());
+    final prepTime = int.tryParse(_prepTimeCtrl.text.trim()) ?? 15;
+    final calories = int.tryParse(_caloriesCtrl.text.trim()) ?? 0;
 
     try {
       if (_isEditing) {
@@ -68,6 +77,9 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
           'price': price,
           'category': _selectedCategory,
           'isAvailable': _isAvailable,
+          'isPopular': _isPopular,
+          'prepTime': prepTime,
+          'calories': calories,
         });
       } else {
         final newItem = MenuItemModel(
@@ -78,6 +90,9 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
           price: price,
           category: _selectedCategory,
           isAvailable: _isAvailable,
+          isPopular: _isPopular,
+          prepTime: prepTime,
+          calories: calories,
           createdAt: DateTime.now(),
         );
         await db.addMenuItem(uid, newItem);
@@ -101,9 +116,32 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Item' : 'Add Menu Item'),
-        backgroundColor: AppColors.primaryDark,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          _isEditing ? 'Edit Item' : 'Add Menu Item',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        actions: [
+          if (_isEditing)
+            TextButton(
+              onPressed: _isSaving ? null : _save,
+              child: const Text(
+                'Save',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -113,10 +151,61 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Image placeholder
+                GestureDetector(
+                  onTap: () {},
+                  child: Container(
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add_photo_alternate_outlined,
+                              color: AppColors.primary, size: 26),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Add Photo',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Tap to upload item photo',
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Basic info section
+                _sectionLabel('Basic Information'),
+                const SizedBox(height: 12),
+
                 CustomTextField(
                   controller: _nameCtrl,
                   label: 'Item Name',
-                  hint: 'e.g. Nasi Lemak',
+                  hint: 'e.g. Nasi Lemak Special',
                   prefixIcon: Icons.fastfood_outlined,
                   maxLength: AppConstants.maxMenuItemNameLength,
                   validator: (v) =>
@@ -127,7 +216,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
                 CustomTextField(
                   controller: _descCtrl,
                   label: 'Description',
-                  hint: 'Brief description of the item',
+                  hint: 'Describe the item (ingredients, taste, etc.)',
                   prefixIcon: Icons.description_outlined,
                   maxLines: 3,
                 ),
@@ -146,78 +235,156 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
                   ],
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Price is required';
-                    final price = double.tryParse(v);
-                    if (price == null || price <= 0) {
-                      return 'Enter a valid price';
-                    }
-                    if (price > AppConstants.maxMenuItemPrice) {
-                      return 'Price too high';
-                    }
+                    final p = double.tryParse(v);
+                    if (p == null || p <= 0) return 'Enter a valid price';
+                    if (p > AppConstants.maxMenuItemPrice) return 'Price too high';
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-                // Category picker
-                const Text(
-                  'Category',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
+                // Details section
+                _sectionLabel('Details'),
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomTextField(
+                        controller: _prepTimeCtrl,
+                        label: 'Prep Time (min)',
+                        hint: '15',
+                        prefixIcon: Icons.timer_outlined,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: CustomTextField(
+                        controller: _caloriesCtrl,
+                        label: 'Calories (kcal)',
+                        hint: '0',
+                        prefixIcon: Icons.local_fire_department_outlined,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
+
+                // Category section
+                _sectionLabel('Category'),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
-                  runSpacing: 4,
+                  runSpacing: 8,
                   children: AppConstants.menuCategories
                       .where((c) => c != 'All')
                       .map((cat) {
                     final selected = _selectedCategory == cat;
-                    return ChoiceChip(
-                      label: Text(cat),
-                      selected: selected,
-                      onSelected: (_) =>
-                          setState(() => _selectedCategory = cat),
-                      selectedColor: AppColors.primaryDark,
-                      labelStyle: TextStyle(
-                        color: selected
-                            ? Colors.white
-                            : AppColors.textSecondary,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedCategory = cat),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.primary
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: selected
+                                ? AppColors.primary
+                                : AppColors.primary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          cat,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            color: selected
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                          ),
+                        ),
                       ),
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-                // Availability toggle
-                Card(
-                  child: SwitchListTile(
-                    value: _isAvailable,
-                    onChanged: (v) => setState(() => _isAvailable = v),
-                    activeThumbColor: AppColors.success,
-                    title: const Text('Available for Order'),
-                    subtitle: Text(
-                      _isAvailable
-                          ? 'Customers can order this item'
-                          : 'Item is hidden from customers',
-                      style: const TextStyle(fontSize: 12),
-                    ),
+                // Toggles section
+                _sectionLabel('Options'),
+                const SizedBox(height: 12),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        value: _isAvailable,
+                        onChanged: (v) => setState(() => _isAvailable = v),
+                        activeThumbColor: AppColors.success,
+                        activeTrackColor:
+                            AppColors.success.withValues(alpha: 0.3),
+                        title: const Text(
+                          'Available for Order',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(
+                          _isAvailable
+                              ? 'Customers can order this item'
+                              : 'Item is hidden from customers',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        value: _isPopular,
+                        onChanged: (v) => setState(() => _isPopular = v),
+                        activeThumbColor: AppColors.popular,
+                        activeTrackColor:
+                            AppColors.popular.withValues(alpha: 0.3),
+                        title: const Text(
+                          'Mark as Popular',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: const Text(
+                          'Shows a "Popular" badge on this item',
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 32),
 
                 ElevatedButton(
                   onPressed: _isSaving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryDark,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 52),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: _isSaving
@@ -235,6 +402,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
                           ),
                         ),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -242,4 +410,13 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
       ),
     );
   }
+
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+      );
 }

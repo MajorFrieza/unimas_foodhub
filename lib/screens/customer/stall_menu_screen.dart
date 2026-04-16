@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../models/menu_item_model.dart';
 import '../../models/seller_model.dart';
-import '../../providers/cart_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
-import '../../widgets/menu_item_card.dart';
 
 class StallMenuScreen extends StatefulWidget {
   const StallMenuScreen({super.key});
@@ -21,90 +18,202 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final seller = ModalRoute.of(context)!.settings.arguments as SellerModel;
-    final cartProvider = context.watch<CartProvider>();
+    final seller =
+        ModalRoute.of(context)!.settings.arguments as SellerModel;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          // App bar with stall info
+          // Hero image app bar
           SliverAppBar(
-            expandedHeight: 180,
+            expandedHeight: 220,
             pinned: true,
             backgroundColor: AppColors.primary,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                seller.stallName,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+            leading: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.arrow_back_ios_new,
+                    color: Colors.white, size: 16),
+              ),
+            ),
+            actions: [
+              Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.favorite_border,
+                      color: Colors.white, size: 18),
+                  onPressed: () {},
+                  constraints: const BoxConstraints(
+                      minWidth: 36, minHeight: 36),
+                  padding: EdgeInsets.zero,
                 ),
               ),
-              background: seller.imageUrl != null && seller.imageUrl!.isNotEmpty
-                  ? Image.network(seller.imageUrl!, fit: BoxFit.cover)
-                  : Container(
-                      color: AppColors.primary,
-                      child: const Icon(
-                        Icons.storefront,
-                        size: 72,
-                        color: Colors.white30,
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Background image
+                  seller.imageUrl != null && seller.imageUrl!.isNotEmpty
+                      ? Image.network(seller.imageUrl!, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _heroBg())
+                      : _heroBg(),
+                  // Gradient overlay
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.55),
+                        ],
                       ),
                     ),
-            ),
-          ),
-
-          // Stall details
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          seller.description,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: seller.isOpen
-                              ? AppColors.success.withValues(alpha: 0.12)
-                              : AppColors.error.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          seller.isOpen ? 'Open' : 'Closed',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                  ),
+                  // Bottom info overlay
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Open badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
                             color: seller.isOpen
                                 ? AppColors.success
                                 : AppColors.error,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.access_time,
+                                  color: Colors.white, size: 12),
+                              const SizedBox(width: 4),
+                              Text(
+                                seller.isOpen
+                                    ? 'Open until ${seller.openUntil}'
+                                    : 'Closed',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        Text(
+                          seller.stallName,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Stall info card
+          SliverToBoxAdapter(
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    seller.description.isNotEmpty
+                        ? seller.description
+                        : 'Authentic ${seller.cuisineType} cuisine.',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      // Rating
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.popular.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.star,
+                                color: AppColors.popular, size: 14),
+                            const SizedBox(width: 3),
+                            Text(
+                              seller.rating > 0
+                                  ? seller.rating.toStringAsFixed(1)
+                                  : 'New',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 10),
+                      // Location
+                      if (seller.location != null &&
+                          seller.location!.isNotEmpty) ...[
+                        const Icon(Icons.location_on_outlined,
+                            size: 14, color: AppColors.textSecondary),
+                        const SizedBox(width: 3),
+                        Text(
+                          seller.location!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   if (!seller.isOpen)
                     Container(
-                      margin: const EdgeInsets.only(top: 12),
-                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(top: 10),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.warning.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.warning.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: AppColors.warning.withValues(alpha: 0.4)),
+                            color:
+                                AppColors.warning.withValues(alpha: 0.3)),
                       ),
                       child: const Row(
                         children: [
                           Icon(Icons.info_outline,
-                              color: AppColors.warning, size: 18),
+                              color: AppColors.warning, size: 16),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -121,65 +230,103 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
             ),
           ),
 
-          // Category filter
+          // Menu header + category tabs
           SliverToBoxAdapter(
-            child: SizedBox(
-              height: 44,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: AppConstants.menuCategories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final cat = AppConstants.menuCategories[i];
-                  final selected = _selectedCategory == cat;
-                  return ChoiceChip(
-                    label: Text(cat),
-                    selected: selected,
-                    onSelected: (_) =>
-                        setState(() => _selectedCategory = cat),
-                    selectedColor: AppColors.primary,
-                    labelStyle: TextStyle(
-                      color: selected ? Colors.white : AppColors.textSecondary,
-                      fontWeight: selected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 8, 0, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Menu',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 36,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: AppConstants.menuCategories.length,
+                      itemBuilder: (_, i) {
+                        final cat = AppConstants.menuCategories[i];
+                        final selected = cat == _selectedCategory;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => _selectedCategory = cat),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: selected
+                                      ? AppColors.primary
+                                      : AppColors.border,
+                                ),
+                              ),
+                              child: Text(
+                                cat,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: selected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  color: selected
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ),
             ),
           ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          const SliverToBoxAdapter(child: SizedBox(height: 4)),
 
-          // Menu items list
+          // Menu items
           StreamBuilder<List<MenuItemModel>>(
             stream: _db.menuItemsStream(seller.uid),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
                 return const SliverFillRemaining(
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: CircularProgressIndicator(
+                        color: AppColors.primary),
                   ),
                 );
               }
-
-              var items = snapshot.data ?? [];
+              var items = snap.data ?? [];
               if (_selectedCategory != 'All') {
                 items = items
                     .where((i) => i.category == _selectedCategory)
                     .toList();
               }
-
               if (items.isEmpty) {
                 return SliverFillRemaining(
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.fastfood,
-                            size: 56, color: AppColors.textHint),
+                        const Icon(Icons.fastfood_outlined,
+                            size: 48, color: AppColors.textHint),
                         const SizedBox(height: 12),
                         Text(
                           _selectedCategory == 'All'
@@ -193,87 +340,162 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
                   ),
                 );
               }
-
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (_, i) {
-                    final item = items[i];
-                    final qty = cartProvider.items
-                        .where((c) => c.menuItem.id == item.id)
-                        .fold(0, (sum, c) => sum + c.quantity);
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
-                      child: MenuItemCard(
-                        item: item,
-                        cartQuantity: qty,
-                        onAdd: () => _addToCart(
-                            item, seller, cartProvider),
-                        onDecrement: () =>
-                            cartProvider.decrementItem(item.id),
-                      ),
-                    );
-                  },
+                  (_, i) => _MenuItemTile(
+                    item: items[i],
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      '/customer/item',
+                      arguments: items[i],
+                    ),
+                  ),
                   childCount: items.length,
                 ),
               );
             },
           ),
 
-          // Bottom padding for FAB
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
-
-      // Cart FAB
-      floatingActionButton: cartProvider.isEmpty ||
-              cartProvider.currentSellerId != seller.uid
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () =>
-                  Navigator.of(context).pushNamed('/customer/cart'),
-              backgroundColor: AppColors.primary,
-              icon: const Icon(Icons.shopping_cart),
-              label: Text(
-                '${cartProvider.itemCount} item${cartProvider.itemCount > 1 ? 's' : ''}'
-                ' • RM ${cartProvider.totalAmount.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
     );
   }
 
-  void _addToCart(
-      MenuItemModel item, SellerModel seller, CartProvider cartProvider) {
-    final added = cartProvider.addItem(item, seller.uid, seller.stallName);
-    if (!added) {
-      // Cart has items from a different stall
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Start New Order?'),
-          content: Text(
-            'Your cart has items from "${cartProvider.currentStallName}". '
-            'Starting a new order will clear your current cart.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                cartProvider.clearCart();
-                cartProvider.addItem(item, seller.uid, seller.stallName);
-                Navigator.pop(context);
-              },
-              child: const Text('Clear & Add',
-                  style: TextStyle(color: AppColors.primary)),
+  Widget _heroBg() => Container(
+        color: AppColors.primary,
+        child: const Center(
+          child: Icon(Icons.storefront, size: 80, color: Colors.white24),
+        ),
+      );
+}
+
+class _MenuItemTile extends StatelessWidget {
+  final MenuItemModel item;
+  final VoidCallback onTap;
+
+  const _MenuItemTile({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-      );
-    }
+        child: Row(
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: item.imageUrl != null
+                    ? Image.network(item.imageUrl!, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _imgPlaceholder())
+                    : _imgPlaceholder(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (item.isPopular)
+                        Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.popular,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Popular',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      Expanded(
+                        child: Text(
+                          item.name,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Text(
+                        'RM ${item.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.access_time,
+                          size: 12, color: AppColors.textHint),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${item.prepTime} min',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textHint,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
+  Widget _imgPlaceholder() => Container(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        child: const Center(
+          child: Icon(Icons.fastfood_outlined,
+              color: AppColors.primary, size: 28),
+        ),
+      );
 }

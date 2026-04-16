@@ -9,6 +9,7 @@ class AppConstants {
 
   // Order statuses
   static const String statusPending = 'pending';
+  static const String statusConfirmed = 'confirmed';
   static const String statusPreparing = 'preparing';
   static const String statusReady = 'ready';
   static const String statusCompleted = 'completed';
@@ -19,6 +20,16 @@ class AppConstants {
   static const String sellersPath = 'sellers';
   static const String menuItemsPath = 'menuItems';
   static const String ordersPath = 'orders';
+
+  // Cuisine types (for stall filter)
+  static const List<String> cuisineTypes = [
+    'All',
+    'Malay',
+    'Chinese',
+    'Indian',
+    'Western',
+    'Japanese',
+  ];
 
   // Menu categories
   static const List<String> menuCategories = [

@@ -7,24 +7,23 @@ import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'utils/app_theme.dart';
 
-// ── Auth screens ────────────────────────────────────────────────────────────
+// ── Entry ────────────────────────────────────────────────────────────────────
 import 'screens/splash_screen.dart';
-import 'screens/role_selection_screen.dart';
-import 'screens/auth/customer_login_screen.dart';
-import 'screens/auth/customer_register_screen.dart';
-import 'screens/auth/seller_login_screen.dart';
-import 'screens/auth/seller_register_screen.dart';
+import 'screens/welcome_screen.dart';
 
-// ── Customer screens ─────────────────────────────────────────────────────────
-import 'screens/customer/stall_list_screen.dart';
+// ── Auth screens ─────────────────────────────────────────────────────────────
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+
+// ── Customer scaffold & screens ───────────────────────────────────────────────
+import 'screens/customer/customer_scaffold.dart';
 import 'screens/customer/stall_menu_screen.dart';
+import 'screens/customer/food_item_detail_screen.dart';
 import 'screens/customer/cart_screen.dart';
-import 'screens/customer/order_confirmation_screen.dart';
-import 'screens/customer/order_history_screen.dart';
+import 'screens/customer/order_tracking_screen.dart';
 
-// ── Seller screens ───────────────────────────────────────────────────────────
-import 'screens/seller/seller_home_screen.dart';
-import 'screens/seller/menu_management_screen.dart';
+// ── Seller scaffold & screens ─────────────────────────────────────────────────
+import 'screens/seller/seller_scaffold.dart';
 import 'screens/seller/add_edit_menu_item_screen.dart';
 
 void main() async {
@@ -53,27 +52,25 @@ class UnimasFoodHubApp extends StatelessWidget {
         routes: {
           // Entry
           '/': (_) => const SplashScreen(),
-          '/role-selection': (_) => const RoleSelectionScreen(),
+          '/welcome': (_) => const WelcomeScreen(),
 
-          // Customer auth
-          '/customer/login': (_) => const CustomerLoginScreen(),
-          '/customer/register': (_) => const CustomerRegisterScreen(),
+          // Unified auth
+          '/login': (_) => const LoginScreen(),
+          '/register': (_) => const RegisterScreen(),
 
-          // Seller auth
-          '/seller/login': (_) => const SellerLoginScreen(),
-          '/seller/register': (_) => const SellerRegisterScreen(),
+          // Customer main scaffold (home, search, cart, orders, profile)
+          '/customer/home': (_) => const CustomerScaffold(),
 
-          // Customer flow
-          '/customer/stalls': (_) => const StallListScreen(),
+          // Customer detail screens (pushed on top of scaffold)
           '/customer/menu': (_) => const StallMenuScreen(),
+          '/customer/item': (_) => const FoodItemDetailScreen(),
           '/customer/cart': (_) => const CartScreen(),
-          '/customer/order-confirmation': (_) =>
-              const OrderConfirmationScreen(),
-          '/customer/orders': (_) => const OrderHistoryScreen(),
+          '/customer/order-tracking': (_) => const OrderTrackingScreen(),
 
-          // Seller flow
-          '/seller/home': (_) => const SellerHomeScreen(),
-          '/seller/menu': (_) => const MenuManagementScreen(),
+          // Seller main scaffold (dashboard, orders, menu, settings)
+          '/seller/home': (_) => const SellerScaffold(),
+
+          // Seller detail screens (pushed on top of scaffold)
           '/seller/menu/add': (_) => const AddEditMenuItemScreen(),
         },
       ),

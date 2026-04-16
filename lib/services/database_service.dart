@@ -27,12 +27,11 @@ class DatabaseService {
   }
 
   Future<void> updateSellerIsOpen(String uid, bool isOpen) async {
-    await _db
-        .ref('${AppConstants.sellersPath}/$uid/isOpen')
-        .set(isOpen);
+    await _db.ref('${AppConstants.sellersPath}/$uid/isOpen').set(isOpen);
   }
 
-  Future<void> updateSellerProfile(String uid, Map<String, dynamic> updates) async {
+  Future<void> updateSellerProfile(
+      String uid, Map<String, dynamic> updates) async {
     await _db.ref('${AppConstants.sellersPath}/$uid').update(updates);
   }
 
@@ -46,11 +45,29 @@ class DatabaseService {
       if (event.snapshot.value == null) return [];
       final map = event.snapshot.value as Map<dynamic, dynamic>;
       return map.entries.map((entry) {
-        return MenuItemModel.fromMap(
-            entry.key.toString(),
-            sellerId,
+        return MenuItemModel.fromMap(entry.key.toString(), sellerId,
             entry.value as Map<dynamic, dynamic>);
       }).toList();
+    });
+  }
+
+  /// Returns all menu items across all sellers as a flat list.
+  /// Used for the home screen "Popular Right Now" section.
+  Stream<List<MenuItemModel>> allMenuItemsStream() {
+    return _db.ref(AppConstants.menuItemsPath).onValue.map((event) {
+      if (event.snapshot.value == null) return [];
+      final sellersMap = event.snapshot.value as Map<dynamic, dynamic>;
+      final items = <MenuItemModel>[];
+      for (final sellerEntry in sellersMap.entries) {
+        final sellerId = sellerEntry.key.toString();
+        final itemsMap = sellerEntry.value as Map<dynamic, dynamic>?;
+        if (itemsMap == null) continue;
+        for (final itemEntry in itemsMap.entries) {
+          items.add(MenuItemModel.fromMap(itemEntry.key.toString(), sellerId,
+              itemEntry.value as Map<dynamic, dynamic>));
+        }
+      }
+      return items;
     });
   }
 
@@ -86,6 +103,17 @@ class DatabaseService {
     final ref = _db.ref(AppConstants.ordersPath).push();
     await ref.set(order.toMap());
     return ref.key!;
+  }
+
+  Stream<OrderModel?> orderStream(String orderId) {
+    return _db
+        .ref('${AppConstants.ordersPath}/$orderId')
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) return null;
+      return OrderModel.fromMap(
+          orderId, event.snapshot.value as Map<dynamic, dynamic>);
+    });
   }
 
   Stream<List<OrderModel>> customerOrdersStream(String customerId) {
