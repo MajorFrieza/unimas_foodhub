@@ -1,6 +1,7 @@
 class MenuItemModel {
   final String id;
   final String sellerId;
+  final String stallName;
   final String name;
   final String description;
   final double price;
@@ -15,6 +16,7 @@ class MenuItemModel {
   MenuItemModel({
     required this.id,
     required this.sellerId,
+    this.stallName = '',
     required this.name,
     required this.description,
     required this.price,
@@ -32,6 +34,7 @@ class MenuItemModel {
     return MenuItemModel(
       id: id,
       sellerId: sellerId,
+      stallName: map['stallName'] ?? '',
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       price: (map['price'] ?? 0.0).toDouble(),
@@ -49,6 +52,7 @@ class MenuItemModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'stallName': stallName,
       'name': name,
       'description': description,
       'price': price,
@@ -63,6 +67,7 @@ class MenuItemModel {
   }
 
   MenuItemModel copyWith({
+    String? stallName,
     String? name,
     String? description,
     double? price,
@@ -76,6 +81,7 @@ class MenuItemModel {
     return MenuItemModel(
       id: id,
       sellerId: sellerId,
+      stallName: stallName ?? this.stallName,
       name: name ?? this.name,
       description: description ?? this.description,
       price: price ?? this.price,

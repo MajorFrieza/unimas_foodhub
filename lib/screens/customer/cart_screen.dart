@@ -5,7 +5,8 @@ import '../../providers/cart_provider.dart';
 import '../../utils/app_colors.dart';
 
 class CartScreen extends StatelessWidget {
-  const CartScreen({super.key});
+  final VoidCallback? onBrowse;
+  const CartScreen({super.key, this.onBrowse});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +36,7 @@ class CartScreen extends StatelessWidget {
         ],
       ),
       body: cart.isEmpty
-          ? _EmptyCart()
+          ? _EmptyCart(onBrowse: onBrowse)
           : Column(
               children: [
                 Expanded(
@@ -441,15 +442,26 @@ class _QtyBtn extends StatelessWidget {
 }
 
 class _EmptyCart extends StatelessWidget {
+  final VoidCallback? onBrowse;
+  const _EmptyCart({this.onBrowse});
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.shopping_cart_outlined,
-              size: 64, color: AppColors.textHint),
-          const SizedBox(height: 16),
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.shopping_cart_outlined,
+                size: 40, color: AppColors.primary),
+          ),
+          const SizedBox(height: 20),
           const Text(
             'Your cart is empty',
             style: TextStyle(
@@ -462,22 +474,26 @@ class _EmptyCart extends StatelessWidget {
           const Text(
             'Browse restaurants and add items\nto get started',
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 14, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.pushNamed(context, '/customer/search'),
+          const SizedBox(height: 28),
+          ElevatedButton.icon(
+            onPressed: onBrowse,
+            icon: const Icon(Icons.storefront_outlined, size: 18),
+            label: const Text('Browse Restaurants'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
+              elevation: 0,
+              minimumSize: const Size(0, 48),
+              maximumSize: const Size(220, 48),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(24)),
               padding: const EdgeInsets.symmetric(
-                  horizontal: 24, vertical: 12),
+                  horizontal: 28, vertical: 14),
+              textStyle: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            child: const Text('Browse Restaurants'),
           ),
         ],
       ),

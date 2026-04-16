@@ -426,7 +426,7 @@ class _RecentOrderTile extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '#${order.id.substring(0, 6).toUpperCase()}',
+                      '#${order.id.replaceAll('-', '').substring(0, 6).toUpperCase()}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,

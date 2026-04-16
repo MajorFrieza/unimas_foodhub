@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 
 class CustomerProfileScreen extends StatelessWidget {
@@ -26,10 +27,18 @@ class CustomerProfileScreen extends StatelessWidget {
           ),
         ),
         actions: [
-          IconButton(
+          TextButton.icon(
+            onPressed: () => _showEditSheet(context, auth),
             icon: const Icon(Icons.edit_outlined,
-                color: AppColors.primary, size: 20),
-            onPressed: () {},
+                color: AppColors.primary, size: 18),
+            label: const Text(
+              'Edit',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),
@@ -40,37 +49,29 @@ class CustomerProfileScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 24),
+              padding: const EdgeInsets.symmetric(vertical: 28),
               child: Column(
                 children: [
                   // Avatar
-                  Stack(
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.person,
-                            size: 44, color: AppColors.primary),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: 26,
-                          height: 26,
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt,
-                              size: 14, color: Colors.white),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        customer?.name.isNotEmpty == true
+                            ? customer!.name[0].toUpperCase()
+                            : 'C',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -126,34 +127,9 @@ class CustomerProfileScreen extends StatelessWidget {
                   _InfoRow(
                     icon: Icons.phone_outlined,
                     label: 'Phone',
-                    value: customer?.phone ?? '—',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Menu items
-            Container(
-              color: Colors.white,
-              child: Column(
-                children: [
-                  _MenuRow(
-                    icon: Icons.notifications_outlined,
-                    label: 'Notifications',
-                    onTap: () {},
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _MenuRow(
-                    icon: Icons.security_outlined,
-                    label: 'Privacy & Security',
-                    onTap: () {},
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _MenuRow(
-                    icon: Icons.help_outline,
-                    label: 'Help & Support',
-                    onTap: () {},
+                    value: (customer?.phone ?? '').isNotEmpty
+                        ? customer!.phone
+                        : '—',
                   ),
                 ],
               ),
@@ -163,13 +139,28 @@ class CustomerProfileScreen extends StatelessWidget {
             // Log out
             Container(
               color: Colors.white,
-              child: _MenuRow(
-                icon: Icons.logout,
-                label: 'Log Out',
-                iconColor: AppColors.error,
-                labelColor: AppColors.error,
+              child: ListTile(
                 onTap: () => _confirmLogout(context, auth),
-                showChevron: false,
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.logout,
+                      size: 18, color: AppColors.error),
+                ),
+                title: const Text(
+                  'Log Out',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.error,
+                  ),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
               ),
             ),
             const SizedBox(height: 32),
@@ -179,10 +170,21 @@ class CustomerProfileScreen extends StatelessWidget {
     );
   }
 
+  void _showEditSheet(BuildContext context, AuthProvider auth) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditProfileSheet(auth: auth),
+    );
+  }
+
   void _confirmLogout(BuildContext context, AuthProvider auth) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Log Out?'),
         content: const Text('Are you sure you want to log out?'),
         actions: [
@@ -200,6 +202,191 @@ class CustomerProfileScreen extends StatelessWidget {
             },
             child: const Text('Log Out',
                 style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EditProfileSheet extends StatefulWidget {
+  final AuthProvider auth;
+  const _EditProfileSheet({required this.auth});
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _phoneCtrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl =
+        TextEditingController(text: widget.auth.customer?.name ?? '');
+    _phoneCtrl =
+        TextEditingController(text: widget.auth.customer?.phone ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    if (name.isEmpty) return;
+
+    setState(() => _saving = true);
+    try {
+      final db = DatabaseService();
+      await db.updateCustomerProfile(widget.auth.currentUserId, {
+        'name': name,
+        'phone': phone,
+      });
+      widget.auth.updateCustomerLocally(name: name, phone: phone);
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update profile. Try again.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottom),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Edit Profile',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Name field
+          const Text(
+            'Full Name',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _nameCtrl,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              hintText: 'Your full name',
+              hintStyle:
+                  const TextStyle(color: AppColors.textHint, fontSize: 14),
+              prefixIcon: const Icon(Icons.person_outline,
+                  color: AppColors.primary, size: 20),
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 14),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Phone field
+          const Text(
+            'Phone Number',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _phoneCtrl,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              hintText: 'e.g. 011-12345678',
+              hintStyle:
+                  const TextStyle(color: AppColors.textHint, fontSize: 14),
+              prefixIcon: const Icon(Icons.phone_outlined,
+                  color: AppColors.primary, size: 20),
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 14),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Save button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _saving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Save Changes',
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+            ),
           ),
         ],
       ),
@@ -236,54 +423,6 @@ class _InfoRow extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _MenuRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color iconColor;
-  final Color labelColor;
-  final bool showChevron;
-
-  const _MenuRow({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.iconColor = AppColors.textSecondary,
-    this.labelColor = AppColors.textPrimary,
-    this.showChevron = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, size: 18, color: iconColor),
-      ),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: labelColor,
-        ),
-      ),
-      trailing: showChevron
-          ? const Icon(Icons.chevron_right,
-              color: AppColors.textHint, size: 20)
-          : null,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
     );
   }
 }

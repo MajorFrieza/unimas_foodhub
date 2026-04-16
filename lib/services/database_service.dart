@@ -35,6 +35,11 @@ class DatabaseService {
     await _db.ref('${AppConstants.sellersPath}/$uid').update(updates);
   }
 
+  Future<void> updateCustomerProfile(
+      String uid, Map<String, dynamic> updates) async {
+    await _db.ref('${AppConstants.usersPath}/$uid').update(updates);
+  }
+
   // ─── Menu Items ───────────────────────────────────────────────────────────
 
   Stream<List<MenuItemModel>> menuItemsStream(String sellerId) {

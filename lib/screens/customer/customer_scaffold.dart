@@ -18,12 +18,12 @@ class CustomerScaffold extends StatefulWidget {
 class _CustomerScaffoldState extends State<CustomerScaffold> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    SearchScreen(),
-    CartScreen(),
-    OrderHistoryScreen(),
-    CustomerProfileScreen(),
+  late final List<Widget> _pages = [
+    HomeScreen(onSwitchToSearch: () => setState(() => _currentIndex = 1)),
+    const SearchScreen(),
+    CartScreen(onBrowse: () => setState(() => _currentIndex = 1)),
+    const OrderHistoryScreen(),
+    const CustomerProfileScreen(),
   ];
 
   @override

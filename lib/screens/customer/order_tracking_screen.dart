@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/order_model.dart';
+import '../../models/seller_model.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
@@ -19,7 +20,7 @@ class OrderTrackingScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          'Order #${order.id.substring(0, 6).toUpperCase()}',
+          'Order #${order.id.replaceAll('-', '').substring(0, 6).toUpperCase()}',
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -59,14 +60,29 @@ class OrderTrackingScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        current.stallName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      current.stallName.isNotEmpty
+                          ? Text(
+                              current.stallName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            )
+                          : FutureBuilder<SellerModel?>(
+                              future: db.getSeller(current.sellerId),
+                              builder: (context, sellerSnap) {
+                                final name = sellerSnap.data?.stallName ?? '';
+                                return Text(
+                                  name.isNotEmpty ? name : 'Loading...',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                );
+                              },
+                            ),
                     ],
                   ),
                 ),

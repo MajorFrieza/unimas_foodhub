@@ -270,7 +270,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
     // Add item _quantity times
     bool added = false;
     for (int i = 0; i < _quantity; i++) {
-      final result = cart.addItem(item, item.sellerId, '');
+      final result = cart.addItem(item, item.sellerId, item.stallName);
       if (!result && i == 0) {
         // Different stall — ask to clear
         showDialog(
@@ -290,7 +290,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                 onPressed: () {
                   cart.clearCart();
                   for (int j = 0; j < _quantity; j++) {
-                    cart.addItem(item, item.sellerId, '');
+                    cart.addItem(item, item.sellerId, item.stallName);
                   }
                   Navigator.pop(context);
                   _showAddedSnackbar(context);

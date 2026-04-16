@@ -16,6 +16,9 @@ class AuthProvider with ChangeNotifier {
   SellerModel? _seller;
   String? _role;
 
+  // Prevents _onAuthStateChanged from racing with login/register calls
+  bool _handlingAuthManually = false;
+
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
   UserModel? get customer => _customer;
@@ -37,6 +40,9 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _onAuthStateChanged(User? user) async {
+    // Skip if login/register is already handling this auth state change
+    if (_handlingAuthManually) return;
+
     if (user == null) {
       _status = AuthStatus.unauthenticated;
       _customer = null;
@@ -51,7 +57,9 @@ class AuthProvider with ChangeNotifier {
 
     try {
       // Try customer profile first
-      final customerProfile = await _authService.fetchCustomerProfile(user.uid);
+      final customerProfile = await _authService
+          .fetchCustomerProfile(user.uid)
+          .timeout(const Duration(seconds: 10));
       if (customerProfile != null) {
         _customer = customerProfile;
         _role = AppConstants.roleCustomer;
@@ -61,7 +69,9 @@ class AuthProvider with ChangeNotifier {
       }
 
       // Try seller profile
-      final sellerProfile = await _authService.fetchSellerProfile(user.uid);
+      final sellerProfile = await _authService
+          .fetchSellerProfile(user.uid)
+          .timeout(const Duration(seconds: 10));
       if (sellerProfile != null) {
         _seller = sellerProfile;
         _role = AppConstants.roleSeller;
@@ -76,7 +86,7 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = e.toString();
+      _errorMessage = 'Connection timed out. Check your internet and try again.';
       notifyListeners();
     }
   }
@@ -90,6 +100,7 @@ class AuthProvider with ChangeNotifier {
     required String phone,
     String? matrixNo,
   }) async {
+    _handlingAuthManually = true;
     _status = AuthStatus.loading;
     _errorMessage = null;
     notifyListeners();
@@ -116,6 +127,8 @@ class AuthProvider with ChangeNotifier {
       _errorMessage = e.toString();
       notifyListeners();
       return false;
+    } finally {
+      _handlingAuthManually = false;
     }
   }
 
@@ -130,6 +143,7 @@ class AuthProvider with ChangeNotifier {
     required String description,
     String? location,
   }) async {
+    _handlingAuthManually = true;
     _status = AuthStatus.loading;
     _errorMessage = null;
     notifyListeners();
@@ -158,6 +172,8 @@ class AuthProvider with ChangeNotifier {
       _errorMessage = e.toString();
       notifyListeners();
       return false;
+    } finally {
+      _handlingAuthManually = false;
     }
   }
 
@@ -167,12 +183,15 @@ class AuthProvider with ChangeNotifier {
     required String email,
     required String password,
   }) async {
+    _handlingAuthManually = true;
     _status = AuthStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final result = await _authService.login(email: email, password: password);
+      final result = await _authService
+          .login(email: email, password: password)
+          .timeout(const Duration(seconds: 15));
       _role = result['role'] as String;
       if (_role == AppConstants.roleCustomer) {
         _customer = result['data'] as UserModel;
@@ -189,9 +208,11 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = e.toString();
+      _errorMessage = 'Connection timed out. Check your internet and try again.';
       notifyListeners();
       return false;
+    } finally {
+      _handlingAuthManually = false;
     }
   }
 
@@ -206,6 +227,32 @@ class AuthProvider with ChangeNotifier {
   void updateSellerOpenStatus(bool isOpen) {
     if (_seller != null) {
       _seller = _seller!.copyWith(isOpen: isOpen);
+      notifyListeners();
+    }
+  }
+
+  void updateCustomerLocally({String? name, String? phone}) {
+    if (_customer != null) {
+      _customer = _customer!.copyWith(name: name, phone: phone);
+      notifyListeners();
+    }
+  }
+
+  void updateSellerLocally({
+    String? stallName,
+    String? description,
+    String? location,
+    String? phone,
+    String? cuisineType,
+  }) {
+    if (_seller != null) {
+      _seller = _seller!.copyWith(
+        stallName: stallName,
+        description: description,
+        location: location,
+        phone: phone,
+        cuisineType: cuisineType,
+      );
       notifyListeners();
     }
   }

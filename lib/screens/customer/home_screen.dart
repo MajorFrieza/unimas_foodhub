@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/menu_item_model.dart';
+import '../../models/order_model.dart';
 import '../../models/seller_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/constants.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onSwitchToSearch;
+  const HomeScreen({super.key, this.onSwitchToSearch});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -24,6 +28,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (h < 12) return 'Good Morning';
     if (h < 17) return 'Good Afternoon';
     return 'Good Evening';
+  }
+
+  void _showNotifications(BuildContext context, String userId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NotificationsSheet(userId: userId, db: _db),
+    );
   }
 
   @override
@@ -75,17 +88,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.notifications_outlined,
-                            color: Colors.white,
-                            size: 22,
+                        GestureDetector(
+                          onTap: () => _showNotifications(context, auth.currentUserId),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           ),
                         ),
                       ],
@@ -93,15 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     // Search bar
                     GestureDetector(
-                      onTap: () {
-                        // Switch to search tab via scaffold — navigate to index 1
-                        final scaffold = context
-                            .findAncestorStateOfType<
-                                State<StatefulWidget>>();
-                        if (scaffold != null) {
-                          Navigator.pushNamed(context, '/customer/search');
-                        }
-                      },
+                      onTap: () => widget.onSwitchToSearch?.call(),
                       child: Container(
                         height: 46,
                         decoration: BoxDecoration(
@@ -198,8 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/customer/search'),
+                      onPressed: () => widget.onSwitchToSearch?.call(),
                       style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
@@ -555,4 +562,175 @@ class _RestaurantCard extends StatelessWidget {
               color: AppColors.primary, size: 28),
         ),
       );
+}
+
+// ─── Notifications Sheet ──────────────────────────────────────────────────────
+
+class _NotificationsSheet extends StatelessWidget {
+  final String userId;
+  final DatabaseService db;
+
+  const _NotificationsSheet({required this.userId, required this.db});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.65,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Handle + title
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            child: Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Text(
+                      'Order Updates',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // Order list
+          Expanded(
+            child: StreamBuilder<List<OrderModel>>(
+              stream: db.customerOrdersStream(userId),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primary),
+                  );
+                }
+
+                final orders = snap.data ?? [];
+                if (orders.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.notifications_none_outlined,
+                            size: 48, color: AppColors.textHint),
+                        SizedBox(height: 12),
+                        Text(
+                          'No order updates yet',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: orders.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, indent: 20, endIndent: 20),
+                  itemBuilder: (context, i) =>
+                      _NotificationTile(order: orders[i]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationTile extends StatelessWidget {
+  final OrderModel order;
+  const _NotificationTile({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final info = _statusInfo(order.status);
+    final time = DateFormat('d MMM, h:mm a').format(order.createdAt);
+
+    return ListTile(
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      leading: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: info.$1.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(info.$2, color: info.$1, size: 20),
+      ),
+      title: Text(
+        info.$3,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 2),
+          Text(
+            '${order.stallName} • Order #${order.id.replaceAll('-', '').substring(0, 6).toUpperCase()}',
+            style: const TextStyle(
+                fontSize: 12, color: AppColors.textSecondary),
+          ),
+          Text(
+            time,
+            style: const TextStyle(
+                fontSize: 11, color: AppColors.textHint),
+          ),
+        ],
+      ),
+    );
+  }
+
+  (Color, IconData, String) _statusInfo(String status) {
+    switch (status) {
+      case AppConstants.statusPending:
+        return (AppColors.statusPending, Icons.hourglass_top_outlined,
+            'Order received — waiting for confirmation');
+      case AppConstants.statusConfirmed:
+        return (AppColors.info, Icons.check_circle_outline,
+            'Order confirmed by stall');
+      case AppConstants.statusPreparing:
+        return (AppColors.statusPreparing, Icons.soup_kitchen_outlined,
+            'Your order is being prepared');
+      case AppConstants.statusReady:
+        return (AppColors.statusReady, Icons.done_all,
+            'Order ready — please collect!');
+      case AppConstants.statusCompleted:
+        return (AppColors.success, Icons.check_circle,
+            'Order completed. Enjoy your meal!');
+      default:
+        return (AppColors.error, Icons.cancel_outlined,
+            'Order was cancelled');
+    }
+  }
 }

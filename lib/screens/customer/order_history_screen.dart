@@ -176,7 +176,7 @@ class _OrderCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${order.items.length} item${order.items.length > 1 ? 's' : ''} • Order #${order.id.substring(0, 6).toUpperCase()}',
+                    '${order.items.length} item${order.items.length > 1 ? 's' : ''} • Order #${order.id.replaceAll('-', '').substring(0, 6).toUpperCase()}',
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textSecondary),
                   ),

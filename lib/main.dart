@@ -17,6 +17,7 @@ import 'screens/auth/register_screen.dart';
 
 // ── Customer scaffold & screens ───────────────────────────────────────────────
 import 'screens/customer/customer_scaffold.dart';
+import 'screens/customer/search_screen.dart';
 import 'screens/customer/stall_menu_screen.dart';
 import 'screens/customer/food_item_detail_screen.dart';
 import 'screens/customer/cart_screen.dart';
@@ -62,6 +63,7 @@ class UnimasFoodHubApp extends StatelessWidget {
           '/customer/home': (_) => const CustomerScaffold(),
 
           // Customer detail screens (pushed on top of scaffold)
+          '/customer/search': (_) => const SearchScreen(),
           '/customer/menu': (_) => const StallMenuScreen(),
           '/customer/item': (_) => const FoodItemDetailScreen(),
           '/customer/cart': (_) => const CartScreen(),

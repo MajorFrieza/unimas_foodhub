@@ -72,6 +72,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
     try {
       if (_isEditing) {
         await db.updateMenuItem(uid, _existingItem!.id, {
+          'stallName': context.read<AuthProvider>().seller?.stallName ?? '',
           'name': _nameCtrl.text.trim(),
           'description': _descCtrl.text.trim(),
           'price': price,
@@ -85,6 +86,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
         final newItem = MenuItemModel(
           id: '',
           sellerId: uid,
+          stallName: context.read<AuthProvider>().seller?.stallName ?? '',
           name: _nameCtrl.text.trim(),
           description: _descCtrl.text.trim(),
           price: price,

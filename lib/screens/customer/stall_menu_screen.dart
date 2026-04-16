@@ -347,7 +347,9 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
                     onTap: () => Navigator.pushNamed(
                       context,
                       '/customer/item',
-                      arguments: items[i],
+                      arguments: items[i].copyWith(
+                        stallName: seller.stallName,
+                      ),
                     ),
                   ),
                   childCount: items.length,
