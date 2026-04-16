@@ -244,6 +244,9 @@ class AuthProvider with ChangeNotifier {
     String? location,
     String? phone,
     String? cuisineType,
+    String? imageUrl,
+    String? openFrom,
+    String? openUntil,
   }) {
     if (_seller != null) {
       _seller = _seller!.copyWith(
@@ -252,6 +255,9 @@ class AuthProvider with ChangeNotifier {
         location: location,
         phone: phone,
         cuisineType: cuisineType,
+        imageUrl: imageUrl,
+        openFrom: openFrom,
+        openUntil: openUntil,
       );
       notifyListeners();
     }

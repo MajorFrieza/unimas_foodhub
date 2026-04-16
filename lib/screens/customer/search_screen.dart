@@ -320,17 +320,17 @@ class _SellerTile extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: seller.isOpen
+          color: seller.isEffectivelyOpen
               ? AppColors.success.withValues(alpha: 0.12)
               : AppColors.error.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
-          seller.isOpen ? 'Open' : 'Closed',
+          seller.isEffectivelyOpen ? 'Open' : 'Closed',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: seller.isOpen ? AppColors.success : AppColors.error,
+            color: seller.isEffectivelyOpen ? AppColors.success : AppColors.error,
           ),
         ),
       ),

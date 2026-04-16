@@ -35,15 +35,9 @@ class SellerDashboardScreen extends StatelessWidget {
             }).toList();
             final revenue = todayOrders.fold<double>(
                 0, (sum, o) => sum + o.totalAmount);
-            final activeOrders = orders
-                .where((o) =>
-                    o.status != AppConstants.statusCompleted &&
-                    o.status != AppConstants.statusCancelled)
-                .toList();
-
             return CustomScrollView(
               slivers: [
-                // Header
+                // Header + Stats (combined with rounded bottom)
                 SliverToBoxAdapter(
                   child: Container(
                     decoration: const BoxDecoration(
@@ -52,10 +46,15 @@ class SellerDashboardScreen extends StatelessWidget {
                         end: Alignment.bottomRight,
                         colors: [AppColors.primary, AppColors.primaryDark],
                       ),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(28),
+                        bottomRight: Radius.circular(28),
+                      ),
                     ),
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                     child: Column(
                       children: [
+                        // Greeting + toggle
                         Row(
                           children: [
                             Expanded(
@@ -66,8 +65,7 @@ class SellerDashboardScreen extends StatelessWidget {
                                     greeting,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Colors.white
-                                          .withValues(alpha: 0.8),
+                                      color: Colors.white.withValues(alpha: 0.8),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -82,7 +80,6 @@ class SellerDashboardScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            // Open/Closed toggle
                             _OpenToggle(
                               isOpen: seller?.isOpen ?? false,
                               onToggle: (val) async {
@@ -93,48 +90,48 @@ class SellerDashboardScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                ),
+                        const SizedBox(height: 20),
 
-                // Stats grid
-                SliverToBoxAdapter(
-                  child: Container(
-                    color: AppColors.primary,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.6,
-                      children: [
-                        _StatCard(
-                          icon: Icons.receipt_long_outlined,
-                          value: '${todayOrders.length}',
-                          label: "Today's Orders",
-                        ),
-                        _StatCard(
-                          icon: Icons.trending_up,
-                          value:
-                              'RM ${revenue.toStringAsFixed(0)}',
-                          label: 'Revenue',
-                        ),
-                        _StatCard(
-                          icon: Icons.access_time,
-                          value: '${activeOrders.length}',
-                          label: 'Active',
-                        ),
-                        _StatCard(
-                          icon: Icons.star_outline,
-                          value: seller?.rating != null &&
-                                  seller!.rating > 0
-                              ? seller.rating.toStringAsFixed(1)
-                              : '—',
-                          label: 'Rating',
-                        ),
+                        // Stats grid — white cards
+                        Builder(builder: (_) {
+                          final activeOrders = orders
+                              .where((o) =>
+                                  o.status != AppConstants.statusCompleted &&
+                                  o.status != AppConstants.statusCancelled)
+                              .length;
+                          return GridView.count(
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.6,
+                            children: [
+                              _StatCard(
+                                icon: Icons.receipt_long_outlined,
+                                value: '${todayOrders.length}',
+                                label: "Today's Orders",
+                              ),
+                              _StatCard(
+                                icon: Icons.trending_up,
+                                value: 'RM ${revenue.toStringAsFixed(0)}',
+                                label: 'Revenue',
+                              ),
+                              _StatCard(
+                                icon: Icons.pending_actions_outlined,
+                                value: '$activeOrders',
+                                label: 'Active Orders',
+                              ),
+                              _StatCard(
+                                icon: Icons.star_outline,
+                                value: seller?.rating != null && seller!.rating > 0
+                                    ? seller.rating.toStringAsFixed(1)
+                                    : '—',
+                                label: 'Rating',
+                              ),
+                            ],
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -309,14 +306,21 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, color: Colors.white70, size: 20),
+          Icon(icon, color: AppColors.primary, size: 20),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -325,14 +329,14 @@ class _StatCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 11,
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -451,6 +455,14 @@ class _RecentOrderTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  _timeAgo(order.createdAt),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -537,6 +549,14 @@ class _RecentOrderTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) return '${diff.inHours} hr ago';
+    return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
   }
 
   String? _nextStatus(String current) {

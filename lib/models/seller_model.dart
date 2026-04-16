@@ -10,6 +10,7 @@ class SellerModel {
   final String? location;
   final String cuisineType;
   final double rating;
+  final String openFrom;
   final String openUntil;
   final DateTime createdAt;
 
@@ -25,9 +26,26 @@ class SellerModel {
     this.location,
     this.cuisineType = 'Others',
     this.rating = 0.0,
+    this.openFrom = '08:00',
     this.openUntil = '17:00',
     required this.createdAt,
   });
+
+  /// True if the stall is manually open AND current time is within operating hours.
+  bool get isEffectivelyOpen {
+    if (!isOpen) return false;
+    try {
+      final now = DateTime.now();
+      final current = now.hour * 60 + now.minute;
+      final fromParts = openFrom.split(':');
+      final untilParts = openUntil.split(':');
+      final from = int.parse(fromParts[0]) * 60 + int.parse(fromParts[1]);
+      final until = int.parse(untilParts[0]) * 60 + int.parse(untilParts[1]);
+      return current >= from && current < until;
+    } catch (_) {
+      return isOpen;
+    }
+  }
 
   factory SellerModel.fromMap(String uid, Map<dynamic, dynamic> map) {
     return SellerModel(
@@ -42,6 +60,7 @@ class SellerModel {
       location: map['location'],
       cuisineType: map['cuisineType'] ?? 'Others',
       rating: (map['rating'] ?? 0.0).toDouble(),
+      openFrom: map['openFrom'] ?? '08:00',
       openUntil: map['openUntil'] ?? '17:00',
       createdAt: map['createdAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['createdAt'])
@@ -61,6 +80,7 @@ class SellerModel {
       'location': location,
       'cuisineType': cuisineType,
       'rating': rating,
+      'openFrom': openFrom,
       'openUntil': openUntil,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'role': 'seller',
@@ -77,6 +97,7 @@ class SellerModel {
     String? location,
     String? cuisineType,
     double? rating,
+    String? openFrom,
     String? openUntil,
   }) {
     return SellerModel(
@@ -91,6 +112,7 @@ class SellerModel {
       location: location ?? this.location,
       cuisineType: cuisineType ?? this.cuisineType,
       rating: rating ?? this.rating,
+      openFrom: openFrom ?? this.openFrom,
       openUntil: openUntil ?? this.openUntil,
       createdAt: createdAt,
     );

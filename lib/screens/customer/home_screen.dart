@@ -503,103 +503,183 @@ class _RestaurantCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
+            // Banner image
             ClipRRect(
-              borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(16)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
               child: SizedBox(
-                width: 80,
-                height: 80,
-                child: seller.imageUrl != null
-                    ? Image.network(
-                        seller.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imgPlaceholder(),
-                      )
-                    : _imgPlaceholder(),
-              ),
-            ),
-            // Info
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                height: 150,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      seller.stallName,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                    seller.imageUrl != null && seller.imageUrl!.isNotEmpty
+                        ? Image.network(
+                            seller.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _imgPlaceholder(),
+                          )
+                        : _imgPlaceholder(),
+                    // Gradient overlay
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.35),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.star,
-                            size: 14, color: AppColors.popular),
-                        const SizedBox(width: 3),
-                        Text(
-                          seller.rating > 0
-                              ? seller.rating.toStringAsFixed(1)
-                              : 'New',
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary),
+                    // Open/Closed badge bottom-left
+                    Positioned(
+                      bottom: 10,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: seller.isEffectivelyOpen
+                              ? AppColors.success
+                              : Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        const SizedBox(width: 6),
-                        const Text('•',
-                            style: TextStyle(
-                                color: AppColors.textHint, fontSize: 12)),
-                        const SizedBox(width: 6),
-                        Text(
-                          seller.cuisineType,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              seller.isEffectivelyOpen
+                                  ? 'Open until ${seller.openUntil}'
+                                  : 'Closed',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            // Open/Closed badge
+
+            // Info section
             Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: seller.isOpen
-                      ? AppColors.success.withValues(alpha: 0.12)
-                      : AppColors.error.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  seller.isOpen ? 'Open' : 'Closed',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color:
-                        seller.isOpen ? AppColors.success : AppColors.error,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    seller.stallName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      // Rating
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.popular.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.star,
+                                size: 12, color: AppColors.popular),
+                            const SizedBox(width: 3),
+                            Text(
+                              seller.rating > 0
+                                  ? seller.rating.toStringAsFixed(1)
+                                  : 'New',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('•',
+                          style: TextStyle(
+                              color: AppColors.textHint, fontSize: 12)),
+                      const SizedBox(width: 8),
+                      Text(
+                        seller.cuisineType,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary),
+                      ),
+                      if (seller.location != null &&
+                          seller.location!.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        const Text('•',
+                            style: TextStyle(
+                                color: AppColors.textHint, fontSize: 12)),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.location_on_outlined,
+                            size: 12, color: AppColors.textHint),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            seller.location!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (seller.description.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      seller.description,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
@@ -612,7 +692,7 @@ class _RestaurantCard extends StatelessWidget {
         color: AppColors.primary.withValues(alpha: 0.08),
         child: const Center(
           child: Icon(Icons.storefront_outlined,
-              color: AppColors.primary, size: 28),
+              color: AppColors.primary, size: 40),
         ),
       );
 }
@@ -677,16 +757,16 @@ class _FavouriteStallCard extends StatelessWidget {
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: seller.isOpen ? AppColors.success : AppColors.error,
+                          color: seller.isEffectivelyOpen ? AppColors.success : AppColors.error,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        seller.isOpen ? 'Open' : 'Closed',
+                        seller.isEffectivelyOpen ? 'Open' : 'Closed',
                         style: TextStyle(
                           fontSize: 10,
-                          color: seller.isOpen ? AppColors.success : AppColors.error,
+                          color: seller.isEffectivelyOpen ? AppColors.success : AppColors.error,
                         ),
                       ),
                     ],

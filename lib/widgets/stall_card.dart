@@ -48,7 +48,7 @@ class StallCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      _StatusChip(isOpen: seller.isOpen),
+                      _StatusChip(isOpen: seller.isEffectivelyOpen),
                     ],
                   ),
                   const SizedBox(height: 4),

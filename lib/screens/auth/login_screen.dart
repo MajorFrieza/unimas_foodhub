@@ -33,6 +33,29 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     if (!mounted) return;
     if (ok) {
+      // Reject if the account role doesn't match the selected tab
+      if (_isCustomer && !auth.isCustomer) {
+        await auth.signOut();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This account is registered as a Seller. Please select Seller.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      if (!_isCustomer && auth.isCustomer) {
+        await auth.signOut();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This account is registered as a Customer. Please select Customer.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
       if (auth.isCustomer) {
         Navigator.pushReplacementNamed(context, '/customer/home');
       } else {

@@ -69,18 +69,18 @@ class WelcomeScreen extends StatelessWidget {
                     const Text(
                       'UNIMAS FoodHub',
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
                         color: Colors.white,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.3,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Smart Campus Food Ordering System',
                       style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                     const SizedBox(height: 36),
@@ -112,7 +112,7 @@ class WelcomeScreen extends StatelessWidget {
 
           // Bottom — white action section
           Expanded(
-            flex: 4,
+            flex: 3,
             child: Container(
               width: double.infinity,
               color: Colors.white,
@@ -138,7 +138,7 @@ class WelcomeScreen extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 28),
                   // Get Started button
                   SizedBox(
                     width: double.infinity,
@@ -217,17 +217,17 @@ class _FeaturePill extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 56,
+          height: 56,
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(14),
+            shape: BoxShape.circle,
             border: Border.all(
               color: Colors.white.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
-          child: Icon(icon, color: Colors.white, size: 22),
+          child: Icon(icon, color: Colors.white, size: 24),
         ),
         const SizedBox(height: 6),
         Text(

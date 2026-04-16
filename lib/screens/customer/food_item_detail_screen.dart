@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/menu_item_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 
 class FoodItemDetailScreen extends StatefulWidget {
@@ -13,12 +15,44 @@ class FoodItemDetailScreen extends StatefulWidget {
 
 class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
   int _quantity = 1;
+  bool _isFavorited = false;
+  bool _favLoaded = false;
+  final _db = DatabaseService();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_favLoaded) {
+      _favLoaded = true;
+      final item = ModalRoute.of(context)!.settings.arguments as MenuItemModel;
+      final customerId = context.read<AuthProvider>().currentUserId;
+      if (customerId.isNotEmpty) {
+        _db.isFavoriteStall(customerId, item.sellerId).then((val) {
+          if (mounted) setState(() => _isFavorited = val);
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleFavorite(String customerId, String sellerId) async {
+    final next = !_isFavorited;
+    setState(() => _isFavorited = next);
+    await _db.setFavoriteStall(customerId, sellerId, next);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(next ? 'Added to favourites' : 'Removed from favourites'),
+        duration: const Duration(seconds: 2),
+        backgroundColor: next ? AppColors.success : AppColors.textSecondary,
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final item =
         ModalRoute.of(context)!.settings.arguments as MenuItemModel;
     final cart = context.watch<CartProvider>();
+    final customerId = context.read<AuthProvider>().currentUserId;
     final total = item.price * _quantity;
 
     return Scaffold(
@@ -50,9 +84,12 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.favorite_border,
-                      color: Colors.white, size: 18),
-                  onPressed: () {},
+                  icon: Icon(
+                    _isFavorited ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorited ? Colors.red[300] : Colors.white,
+                    size: 18,
+                  ),
+                  onPressed: () => _toggleFavorite(customerId, item.sellerId),
                   constraints:
                       const BoxConstraints(minWidth: 36, minHeight: 36),
                   padding: EdgeInsets.zero,

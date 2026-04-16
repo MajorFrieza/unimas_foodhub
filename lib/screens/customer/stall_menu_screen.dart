@@ -132,7 +132,7 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: seller.isOpen
+                            color: seller.isEffectivelyOpen
                                 ? AppColors.success
                                 : AppColors.error,
                             borderRadius: BorderRadius.circular(20),
@@ -144,7 +144,7 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
                                   color: Colors.white, size: 12),
                               const SizedBox(width: 4),
                               Text(
-                                seller.isOpen
+                                seller.isEffectivelyOpen
                                     ? 'Open until ${seller.openUntil}'
                                     : 'Closed',
                                 style: const TextStyle(
@@ -237,7 +237,7 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
                       ],
                     ],
                   ),
-                  if (!seller.isOpen)
+                  if (!seller.isEffectivelyOpen)
                     Container(
                       margin: const EdgeInsets.only(top: 10),
                       padding: const EdgeInsets.all(10),

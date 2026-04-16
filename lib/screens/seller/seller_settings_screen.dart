@@ -53,30 +53,18 @@ class SellerSettingsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 28),
               child: Column(
                 children: [
-                  // Avatar with stall initial
+                  // Avatar — stall image or initial letter
                   Container(
                     width: 80,
                     height: 80,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.primary, AppColors.primaryDark],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        seller?.stallName.isNotEmpty == true
-                            ? seller!.stallName[0].toUpperCase()
-                            : 'S',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+                    decoration: const BoxDecoration(shape: BoxShape.circle),
+                    clipBehavior: Clip.hardEdge,
+                    child: seller?.imageUrl != null &&
+                            seller!.imageUrl!.isNotEmpty
+                        ? Image.network(seller.imageUrl!, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _stallInitialAvatar(seller.stallName))
+                        : _stallInitialAvatar(seller?.stallName ?? ''),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -190,6 +178,12 @@ class SellerSettingsScreen extends StatelessWidget {
                         ? seller!.phone
                         : '—',
                   ),
+                  const Divider(height: 1),
+                  _InfoRow(
+                    icon: Icons.access_time_outlined,
+                    label: 'Operating Hours',
+                    value: '${seller?.openFrom ?? '08:00'} – ${seller?.openUntil ?? '17:00'}',
+                  ),
                 ],
               ),
             ),
@@ -228,6 +222,26 @@ class SellerSettingsScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _stallInitialAvatar(String stallName) => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.primary, AppColors.primaryDark],
+          ),
+        ),
+        child: Center(
+          child: Text(
+            stallName.isNotEmpty ? stallName[0].toUpperCase() : 'S',
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
 
   void _showEditSheet(BuildContext context, AuthProvider auth) {
     showModalBottomSheet(
@@ -283,7 +297,10 @@ class _EditStallSheetState extends State<_EditStallSheet> {
   late final TextEditingController _descCtrl;
   late final TextEditingController _locationCtrl;
   late final TextEditingController _phoneCtrl;
+  late final TextEditingController _imageUrlCtrl;
   late String _selectedCuisine;
+  late TimeOfDay _openFrom;
+  late TimeOfDay _openUntil;
   bool _saving = false;
 
   @override
@@ -294,7 +311,10 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     _descCtrl = TextEditingController(text: s?.description ?? '');
     _locationCtrl = TextEditingController(text: s?.location ?? '');
     _phoneCtrl = TextEditingController(text: s?.phone ?? '');
+    _imageUrlCtrl = TextEditingController(text: s?.imageUrl ?? '');
     _selectedCuisine = s?.cuisineType ?? 'Malay';
+    _openFrom = _parseTime(s?.openFrom ?? '08:00');
+    _openUntil = _parseTime(s?.openUntil ?? '17:00');
     // Ensure selected cuisine is valid
     final validTypes =
         AppConstants.cuisineTypes.where((c) => c != 'All').toList();
@@ -309,6 +329,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     _descCtrl.dispose();
     _locationCtrl.dispose();
     _phoneCtrl.dispose();
+    _imageUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -319,12 +340,20 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     setState(() => _saving = true);
     try {
       final db = DatabaseService();
+      final imageUrl = _imageUrlCtrl.text.trim().isEmpty
+          ? null
+          : _imageUrlCtrl.text.trim();
+      final openFrom = _formatTime(_openFrom);
+      final openUntil = _formatTime(_openUntil);
       await db.updateSellerProfile(widget.auth.currentUserId, {
         'stallName': stallName,
         'description': _descCtrl.text.trim(),
         'location': _locationCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
         'cuisineType': _selectedCuisine,
+        'imageUrl': imageUrl,
+        'openFrom': openFrom,
+        'openUntil': openUntil,
       });
       widget.auth.updateSellerLocally(
         stallName: stallName,
@@ -332,6 +361,9 @@ class _EditStallSheetState extends State<_EditStallSheet> {
         location: _locationCtrl.text.trim(),
         phone: _phoneCtrl.text.trim(),
         cuisineType: _selectedCuisine,
+        imageUrl: imageUrl,
+        openFrom: openFrom,
+        openUntil: openUntil,
       );
       if (mounted) Navigator.pop(context);
     } catch (_) {
@@ -387,6 +419,71 @@ class _EditStallSheetState extends State<_EditStallSheet> {
             ),
             const SizedBox(height: 20),
 
+            // Stall banner image preview
+            GestureDetector(
+              onTap: _showImageUrlDialog,
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _imageUrlCtrl,
+                builder: (context, value, _) {
+                  final hasUrl = value.text.trim().isNotEmpty;
+                  return Container(
+                    height: 130,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          width: 1.5),
+                    ),
+                    clipBehavior: Clip.hardEdge,
+                    child: hasUrl
+                        ? Stack(fit: StackFit.expand, children: [
+                            Image.network(value.text.trim(),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _imagePlaceholder()),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _imageUrlCtrl.clear()),
+                                child: Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black
+                                        .withValues(alpha: 0.5),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close,
+                                      color: Colors.white, size: 14),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color:
+                                      Colors.black.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text('Tap to change',
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 11)),
+                              ),
+                            ),
+                          ])
+                        : _imagePlaceholder(),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
             _fieldLabel('Stall Name'),
             _textField(
               controller: _stallNameCtrl,
@@ -418,6 +515,92 @@ class _EditStallSheetState extends State<_EditStallSheet> {
               hint: 'e.g. 011-12345678',
               icon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 16),
+
+            _fieldLabel('Operating Hours'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _pickTime(isFrom: true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time,
+                              size: 18, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Opens',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textHint)),
+                              Text(
+                                _formatTime(_openFrom),
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Text('–',
+                      style: TextStyle(
+                          fontSize: 18, color: AppColors.textSecondary)),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _pickTime(isFrom: false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time_filled,
+                              size: 18, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Closes',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textHint)),
+                              Text(
+                                _formatTime(_openUntil),
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -494,6 +677,99 @@ class _EditStallSheetState extends State<_EditStallSheet> {
       ),
     );
   }
+
+  TimeOfDay _parseTime(String t) {
+    try {
+      final parts = t.split(':');
+      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    } catch (_) {
+      return const TimeOfDay(hour: 8, minute: 0);
+    }
+  }
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _pickTime({required bool isFrom}) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isFrom ? _openFrom : _openUntil,
+    );
+    if (picked != null) {
+      setState(() {
+        if (isFrom) {
+          _openFrom = picked;
+        } else {
+          _openUntil = picked;
+        }
+      });
+    }
+  }
+
+  void _showImageUrlDialog() {
+    final tempCtrl = TextEditingController(text: _imageUrlCtrl.text);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Stall Banner Image'),
+        content: TextField(
+          controller: tempCtrl,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            hintText: 'https://example.com/stall.jpg',
+            hintStyle: const TextStyle(fontSize: 13),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10)),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() => _imageUrlCtrl.text = tempCtrl.text.trim());
+              Navigator.pop(context);
+            },
+            child: const Text('Apply',
+                style: TextStyle(
+                    color: AppColors.primary, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _imagePlaceholder() => Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.add_photo_alternate_outlined,
+                color: AppColors.primary, size: 22),
+          ),
+          const SizedBox(height: 8),
+          const Text('Add Banner Photo',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary)),
+          const SizedBox(height: 2),
+          const Text('Tap to add image URL',
+              style:
+                  TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        ],
+      );
 
   Widget _fieldLabel(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
