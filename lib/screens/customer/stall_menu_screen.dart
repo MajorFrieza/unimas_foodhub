@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
+import '../../utils/image_helper.dart';
 
 class StallMenuScreen extends StatefulWidget {
   const StallMenuScreen({super.key});
@@ -102,10 +103,11 @@ class _StallMenuScreenState extends State<StallMenuScreen> {
                 fit: StackFit.expand,
                 children: [
                   // Background image
-                  seller.imageUrl != null && seller.imageUrl!.isNotEmpty
-                      ? Image.network(seller.imageUrl!, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _heroBg())
-                      : _heroBg(),
+                  ImageHelper.buildImage(
+                    seller.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: _heroBg(),
+                  ),
                   // Gradient overlay
                   Container(
                     decoration: BoxDecoration(
@@ -442,10 +444,11 @@ class _MenuItemTile extends StatelessWidget {
               child: SizedBox(
                 width: 72,
                 height: 72,
-                child: item.imageUrl != null
-                    ? Image.network(item.imageUrl!, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imgPlaceholder())
-                    : _imgPlaceholder(),
+                child: ImageHelper.buildImage(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: _imgPlaceholder(),
+                  ),
               ),
             ),
             const SizedBox(width: 12),

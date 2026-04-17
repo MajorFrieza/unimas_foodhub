@@ -4,6 +4,7 @@ import '../../models/menu_item_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/image_helper.dart';
 
 class MenuManagementScreen extends StatefulWidget {
   const MenuManagementScreen({super.key});
@@ -331,17 +332,12 @@ class _MenuItemCard extends StatelessWidget {
                   width: 90,
                   height: 90,
                   color: AppColors.primary.withValues(alpha: 0.08),
-                  child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                      ? Image.network(
-                          item.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                              Icons.fastfood,
-                              color: AppColors.primary,
-                              size: 32),
-                        )
-                      : const Icon(Icons.fastfood,
-                          color: AppColors.primary, size: 32),
+                  child: ImageHelper.buildImage(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: const Icon(
+                        Icons.fastfood, color: AppColors.primary, size: 32),
+                  ),
                 ),
                 if (item.isPopular)
                   Positioned(

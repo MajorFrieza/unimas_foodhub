@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/image_helper.dart';
 
 class FoodItemDetailScreen extends StatefulWidget {
   const FoodItemDetailScreen({super.key});
@@ -100,10 +101,11 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  item.imageUrl != null
-                      ? Image.network(item.imageUrl!, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _heroBg())
-                      : _heroBg(),
+                  ImageHelper.buildImage(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: _heroBg(),
+                  ),
                   if (item.isPopular)
                     Positioned(
                       left: 16,

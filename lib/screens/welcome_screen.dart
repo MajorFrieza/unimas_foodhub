@@ -116,10 +116,11 @@ class WelcomeScreen extends StatelessWidget {
             child: Container(
               width: double.infinity,
               color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  const Spacer(),
                   const Text(
                     'Welcome to Campus Dining',
                     style: TextStyle(
@@ -128,7 +129,7 @@ class WelcomeScreen extends StatelessWidget {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   const Text(
                     'Browse menus, order ahead, and skip the queue',
                     textAlign: TextAlign.center,
@@ -138,7 +139,7 @@ class WelcomeScreen extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const Spacer(),
                   // Get Started button
                   SizedBox(
                     width: double.infinity,
@@ -163,7 +164,7 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   // Create Account button
                   SizedBox(
                     width: double.infinity,
@@ -188,7 +189,7 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   const Text(
                     'Part of UNIMAS Smart Campus Initiative',
                     style: TextStyle(
@@ -196,6 +197,7 @@ class WelcomeScreen extends StatelessWidget {
                       color: AppColors.textHint,
                     ),
                   ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

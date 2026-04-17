@@ -4,6 +4,7 @@ import '../../models/seller_model.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
+import '../../utils/image_helper.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -282,10 +283,11 @@ class _SellerTile extends StatelessWidget {
         child: SizedBox(
           width: 54,
           height: 54,
-          child: seller.imageUrl != null
-              ? Image.network(seller.imageUrl!, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _imgPlaceholder())
-              : _imgPlaceholder(),
+          child: ImageHelper.buildImage(
+              seller.imageUrl,
+              fit: BoxFit.cover,
+              placeholder: _imgPlaceholder(),
+            ),
         ),
       ),
       title: Text(
@@ -363,10 +365,11 @@ class _FoodItemTile extends StatelessWidget {
         child: SizedBox(
           width: 54,
           height: 54,
-          child: item.imageUrl != null
-              ? Image.network(item.imageUrl!, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _imgPlaceholder())
-              : _imgPlaceholder(),
+          child: ImageHelper.buildImage(
+              item.imageUrl,
+              fit: BoxFit.cover,
+              placeholder: _imgPlaceholder(),
+            ),
         ),
       ),
       title: Text(

@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
+import '../../utils/image_helper.dart';
 import '../../widgets/custom_text_field.dart';
 
 class AddEditMenuItemScreen extends StatefulWidget {
@@ -23,7 +24,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
   final _prepTimeCtrl = TextEditingController();
   final _caloriesCtrl = TextEditingController();
 
-  final _imageUrlCtrl = TextEditingController();
+  String? _imageData;
   String _selectedCategory = AppConstants.menuCategories[1];
   bool _isAvailable = true;
   bool _isPopular = false;
@@ -46,7 +47,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
       _isPopular = arg.isPopular;
       _prepTimeCtrl.text = arg.prepTime > 0 ? '${arg.prepTime}' : '';
       _caloriesCtrl.text = arg.calories > 0 ? '${arg.calories}' : '';
-      _imageUrlCtrl.text = arg.imageUrl ?? '';
+      _imageData = arg.imageUrl;
     }
   }
 
@@ -57,7 +58,6 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
     _priceCtrl.dispose();
     _prepTimeCtrl.dispose();
     _caloriesCtrl.dispose();
-    _imageUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -73,9 +73,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
     final calories = int.tryParse(_caloriesCtrl.text.trim()) ?? 0;
 
     try {
-      final imageUrl = _imageUrlCtrl.text.trim().isEmpty
-          ? null
-          : _imageUrlCtrl.text.trim();
+      final imageUrl = _imageData;
 
       if (_isEditing) {
         await db.updateMenuItem(uid, _existingItem!.id, {
@@ -164,73 +162,64 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
               children: [
                 // Image picker
                 GestureDetector(
-                  onTap: _showImageUrlDialog,
-                  child: ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: _imageUrlCtrl,
-                    builder: (context, value, _) {
-                      final hasUrl = value.text.trim().isNotEmpty;
-                      return Container(
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.2),
-                            width: 1.5,
-                          ),
-                        ),
-                        clipBehavior: Clip.hardEdge,
-                        child: hasUrl
-                            ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Image.network(
-                                    value.text.trim(),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        _photoPlaceholder(),
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: GestureDetector(
-                                      onTap: () => setState(
-                                          () => _imageUrlCtrl.clear()),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              Colors.black.withValues(alpha: 0.5),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.close,
-                                            color: Colors.white, size: 16),
-                                      ),
+                  onTap: _pickImage,
+                  child: Container(
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        width: 1.5,
+                      ),
+                    ),
+                    clipBehavior: Clip.hardEdge,
+                    child: _imageData != null
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ImageHelper.buildImage(
+                                _imageData,
+                                placeholder: _photoPlaceholder(),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      setState(() => _imageData = null),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black
+                                          .withValues(alpha: 0.5),
+                                      shape: BoxShape.circle,
                                     ),
+                                    child: const Icon(Icons.close,
+                                        color: Colors.white, size: 16),
                                   ),
-                                  Positioned(
-                                    bottom: 8,
-                                    right: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.5),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: const Text(
-                                        'Tap to change',
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 11),
-                                      ),
-                                    ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
-                                ],
-                              )
-                            : _photoPlaceholder(),
-                      );
-                    },
+                                  child: const Text(
+                                    'Tap to change',
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 11),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : _photoPlaceholder(),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -448,44 +437,9 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
     );
   }
 
-  void _showImageUrlDialog() {
-    final tempCtrl = TextEditingController(text: _imageUrlCtrl.text);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Image URL'),
-        content: TextField(
-          controller: tempCtrl,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: InputDecoration(
-            hintText: 'https://example.com/image.jpg',
-            hintStyle: const TextStyle(fontSize: 13),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10)),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() => _imageUrlCtrl.text = tempCtrl.text.trim());
-              Navigator.pop(context);
-            },
-            child: const Text('Apply',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
+  Future<void> _pickImage() async {
+    final data = await ImageHelper.pickFromGallery();
+    if (data != null) setState(() => _imageData = data);
   }
 
   Widget _photoPlaceholder() => Column(
@@ -512,7 +466,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Tap to add image URL',
+            'Tap to pick from gallery',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ],

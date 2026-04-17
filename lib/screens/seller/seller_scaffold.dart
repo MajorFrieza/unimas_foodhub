@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
 import 'seller_dashboard_screen.dart';
 import 'seller_orders_screen.dart';
@@ -14,6 +16,7 @@ class SellerScaffold extends StatefulWidget {
 
 class _SellerScaffoldState extends State<SellerScaffold> {
   int _currentIndex = 0;
+  bool _onboardingChecked = false;
 
   List<Widget> get _pages => [
     SellerDashboardScreen(onSwitchTab: (i) => setState(() => _currentIndex = i)),
@@ -22,8 +25,45 @@ class _SellerScaffoldState extends State<SellerScaffold> {
     const SellerSettingsScreen(),
   ];
 
+  void _showSetupDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Set Up Your Stall'),
+        content: const Text(
+          'Complete your stall profile so customers can find you — add your stall name, cuisine type, and operating hours.',
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _currentIndex = 3);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Set Up Now'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final seller = context.watch<AuthProvider>().seller;
+    if (!_onboardingChecked && seller != null && seller.stallName.isEmpty) {
+      _onboardingChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _showSetupDialog(context));
+    }
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,

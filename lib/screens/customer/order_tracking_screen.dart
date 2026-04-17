@@ -304,6 +304,10 @@ class OrderTrackingScreen extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
+                // Cancel button — only when still pending
+                if (current.status == AppConstants.statusPending)
+                  _CancelOrderButton(order: current, db: db),
+
                 // Back to home button
                 SizedBox(
                   width: double.infinity,
@@ -355,8 +359,9 @@ class OrderTrackingScreen extends StatelessWidget {
   }
 
   int _estimatedTime(List<OrderItemSnapshot> items) {
-    if (items.isEmpty) return 15;
-    return 15;
+    if (items.isEmpty) return 10;
+    final totalQty = items.fold(0, (sum, i) => sum + i.quantity);
+    return (10 + totalQty * 2).clamp(10, 45);
   }
 }
 
@@ -580,6 +585,78 @@ class _RatingCardState extends State<_RatingCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Cancel Order Button ──────────────────────────────────────────────────────
+
+class _CancelOrderButton extends StatefulWidget {
+  final OrderModel order;
+  final DatabaseService db;
+  const _CancelOrderButton({required this.order, required this.db});
+
+  @override
+  State<_CancelOrderButton> createState() => _CancelOrderButtonState();
+}
+
+class _CancelOrderButtonState extends State<_CancelOrderButton> {
+  bool _cancelling = false;
+
+  Future<void> _confirmCancel() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Cancel Order?'),
+        content: const Text(
+            'Are you sure you want to cancel this order? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep Order'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Cancel Order',
+                style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _cancelling = true);
+    await widget.db
+        .updateOrderStatus(widget.order.id, AppConstants.statusCancelled);
+    // Stream will update status — button disappears automatically
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: OutlinedButton(
+          onPressed: _cancelling ? null : _confirmCancel,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.error,
+            side: const BorderSide(color: AppColors.error),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+          ),
+          child: _cancelling
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: AppColors.error),
+                )
+              : const Text('Cancel Order',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+        ),
       ),
     );
   }

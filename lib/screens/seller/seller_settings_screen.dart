@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
+import '../../utils/image_helper.dart';
 
 class SellerSettingsScreen extends StatelessWidget {
   const SellerSettingsScreen({super.key});
@@ -59,12 +60,11 @@ class SellerSettingsScreen extends StatelessWidget {
                     height: 80,
                     decoration: const BoxDecoration(shape: BoxShape.circle),
                     clipBehavior: Clip.hardEdge,
-                    child: seller?.imageUrl != null &&
-                            seller!.imageUrl!.isNotEmpty
-                        ? Image.network(seller.imageUrl!, fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                _stallInitialAvatar(seller.stallName))
-                        : _stallInitialAvatar(seller?.stallName ?? ''),
+                    child: ImageHelper.buildImage(
+                      seller?.imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: _stallInitialAvatar(seller?.stallName ?? ''),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -297,7 +297,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
   late final TextEditingController _descCtrl;
   late final TextEditingController _locationCtrl;
   late final TextEditingController _phoneCtrl;
-  late final TextEditingController _imageUrlCtrl;
+  String? _imageData;
   late String _selectedCuisine;
   late TimeOfDay _openFrom;
   late TimeOfDay _openUntil;
@@ -311,7 +311,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     _descCtrl = TextEditingController(text: s?.description ?? '');
     _locationCtrl = TextEditingController(text: s?.location ?? '');
     _phoneCtrl = TextEditingController(text: s?.phone ?? '');
-    _imageUrlCtrl = TextEditingController(text: s?.imageUrl ?? '');
+    _imageData = s?.imageUrl;
     _selectedCuisine = s?.cuisineType ?? 'Malay';
     _openFrom = _parseTime(s?.openFrom ?? '08:00');
     _openUntil = _parseTime(s?.openUntil ?? '17:00');
@@ -329,7 +329,6 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     _descCtrl.dispose();
     _locationCtrl.dispose();
     _phoneCtrl.dispose();
-    _imageUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -340,9 +339,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     setState(() => _saving = true);
     try {
       final db = DatabaseService();
-      final imageUrl = _imageUrlCtrl.text.trim().isEmpty
-          ? null
-          : _imageUrlCtrl.text.trim();
+      final imageUrl = _imageData;
       final openFrom = _formatTime(_openFrom);
       final openUntil = _formatTime(_openUntil);
       await db.updateSellerProfile(widget.auth.currentUserId, {
@@ -421,65 +418,57 @@ class _EditStallSheetState extends State<_EditStallSheet> {
 
             // Stall banner image preview
             GestureDetector(
-              onTap: _showImageUrlDialog,
-              child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _imageUrlCtrl,
-                builder: (context, value, _) {
-                  final hasUrl = value.text.trim().isNotEmpty;
-                  return Container(
-                    height: 130,
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          width: 1.5),
-                    ),
-                    clipBehavior: Clip.hardEdge,
-                    child: hasUrl
-                        ? Stack(fit: StackFit.expand, children: [
-                            Image.network(value.text.trim(),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    _imagePlaceholder()),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _imageUrlCtrl.clear()),
-                                child: Container(
-                                  padding: const EdgeInsets.all(5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black
-                                        .withValues(alpha: 0.5),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.close,
-                                      color: Colors.white, size: 14),
-                                ),
+              onTap: _pickImage,
+              child: Container(
+                height: 130,
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      width: 1.5),
+                ),
+                clipBehavior: Clip.hardEdge,
+                child: _imageData != null
+                    ? Stack(fit: StackFit.expand, children: [
+                        ImageHelper.buildImage(
+                          _imageData,
+                          placeholder: _imagePlaceholder(),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => _imageData = null),
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
                               ),
+                              child: const Icon(Icons.close,
+                                  color: Colors.white, size: 14),
                             ),
-                            Positioned(
-                              bottom: 8,
-                              right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color:
-                                      Colors.black.withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text('Tap to change',
-                                    style: TextStyle(
-                                        color: Colors.white, fontSize: 11)),
-                              ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          ])
-                        : _imagePlaceholder(),
-                  );
-                },
+                            child: const Text('Tap to change',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 11)),
+                          ),
+                        ),
+                      ])
+                    : _imagePlaceholder(),
               ),
             ),
             const SizedBox(height: 16),
@@ -706,43 +695,9 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     }
   }
 
-  void _showImageUrlDialog() {
-    final tempCtrl = TextEditingController(text: _imageUrlCtrl.text);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Stall Banner Image'),
-        content: TextField(
-          controller: tempCtrl,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: InputDecoration(
-            hintText: 'https://example.com/stall.jpg',
-            hintStyle: const TextStyle(fontSize: 13),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10)),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() => _imageUrlCtrl.text = tempCtrl.text.trim());
-              Navigator.pop(context);
-            },
-            child: const Text('Apply',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
+  Future<void> _pickImage() async {
+    final data = await ImageHelper.pickFromGallery();
+    if (data != null) setState(() => _imageData = data);
   }
 
   Widget _imagePlaceholder() => Column(
@@ -765,7 +720,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
                   fontWeight: FontWeight.w600,
                   color: AppColors.primary)),
           const SizedBox(height: 2),
-          const Text('Tap to add image URL',
+          const Text('Tap to pick from gallery',
               style:
                   TextStyle(fontSize: 11, color: AppColors.textSecondary)),
         ],

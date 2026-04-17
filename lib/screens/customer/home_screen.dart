@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
+import '../../utils/image_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSwitchToSearch;
@@ -438,14 +439,11 @@ class _PopularItemCard extends StatelessWidget {
               child: SizedBox(
                 height: 110,
                 width: double.infinity,
-                child: item.imageUrl != null
-                    ? Image.network(
-                        item.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            _placeholder(),
-                      )
-                    : _placeholder(),
+                child: ImageHelper.buildImage(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: _placeholder(),
+                  ),
               ),
             ),
             Padding(
@@ -528,13 +526,11 @@ class _RestaurantCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    seller.imageUrl != null && seller.imageUrl!.isNotEmpty
-                        ? Image.network(
-                            seller.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _imgPlaceholder(),
-                          )
-                        : _imgPlaceholder(),
+                    ImageHelper.buildImage(
+                      seller.imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: _imgPlaceholder(),
+                    ),
                     // Gradient overlay
                     Container(
                       decoration: BoxDecoration(
@@ -729,10 +725,11 @@ class _FavouriteStallCard extends StatelessWidget {
               child: SizedBox(
                 height: 68,
                 width: double.infinity,
-                child: seller.imageUrl != null && seller.imageUrl!.isNotEmpty
-                    ? Image.network(seller.imageUrl!, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder())
-                    : _placeholder(),
+                child: ImageHelper.buildImage(
+                    seller.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: _placeholder(),
+                  ),
               ),
             ),
             Padding(

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/image_helper.dart';
 
 class CartScreen extends StatelessWidget {
   final VoidCallback? onBrowse;
@@ -122,15 +123,11 @@ class CartScreen extends StatelessWidget {
                                   child: SizedBox(
                                     width: 60,
                                     height: 60,
-                                    child: cartItem.menuItem.imageUrl !=
-                                            null
-                                        ? Image.network(
-                                            cartItem.menuItem.imageUrl!,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                _imgPlaceholder(),
-                                          )
-                                        : _imgPlaceholder(),
+                                    child: ImageHelper.buildImage(
+                                      cartItem.menuItem.imageUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder: _imgPlaceholder(),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
