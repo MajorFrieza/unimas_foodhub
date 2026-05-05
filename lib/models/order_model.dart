@@ -46,6 +46,7 @@ class OrderModel {
   final List<OrderItemSnapshot> items;
   final String? note;
   final int? rating;
+  final String? comment;
 
   OrderModel({
     required this.id,
@@ -60,6 +61,7 @@ class OrderModel {
     required this.items,
     this.note,
     this.rating,
+    this.comment,
   });
 
   factory OrderModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -84,6 +86,7 @@ class OrderModel {
       items: items,
       note: map['note'],
       rating: map['rating'] != null ? (map['rating'] as num).toInt() : null,
+      comment: map['comment'],
     );
   }
 
@@ -105,6 +108,7 @@ class OrderModel {
       'items': itemsMap,
       'note': note,
       if (rating != null) 'rating': rating,
+      if (comment != null) 'comment': comment,
     };
   }
 
@@ -121,6 +125,8 @@ class OrderModel {
       pickupCode: pickupCode,
       items: items,
       note: note,
+      rating: rating,
+      comment: comment,
     );
   }
 }

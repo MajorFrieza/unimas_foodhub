@@ -189,18 +189,31 @@ class DatabaseService {
     });
   }
 
+  /// Returns orders for a seller that have both a rating and a comment.
+  Stream<List<OrderModel>> sellerReviewsStream(String sellerId) {
+    return sellerOrdersStream(sellerId).map((orders) => orders
+        .where((o) =>
+            o.rating != null &&
+            o.comment != null &&
+            o.comment!.trim().isNotEmpty)
+        .toList());
+  }
+
   Future<void> updateOrderStatus(String orderId, String status) async {
     await _db
         .ref('${AppConstants.ordersPath}/$orderId/status')
         .set(status);
   }
 
-  /// Saves a rating on the order then recalculates the seller's average.
-  Future<void> rateOrder(String orderId, String sellerId, int rating) async {
-    // 1. Write rating onto the order
-    await _db
-        .ref('${AppConstants.ordersPath}/$orderId/rating')
-        .set(rating);
+  /// Saves a rating (and optional comment) on the order then recalculates the seller's average.
+  Future<void> rateOrder(String orderId, String sellerId, int rating,
+      {String? comment}) async {
+    // 1. Write rating (and comment if provided) onto the order
+    final updates = <String, dynamic>{'rating': rating};
+    if (comment != null && comment.trim().isNotEmpty) {
+      updates['comment'] = comment.trim();
+    }
+    await _db.ref('${AppConstants.ordersPath}/$orderId').update(updates);
 
     // 2. Fetch all orders for this seller and compute average of rated ones
     final snap = await _db

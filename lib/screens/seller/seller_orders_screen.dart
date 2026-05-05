@@ -261,6 +261,50 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                // Rating & comment (completed orders only)
+                if (order.status == AppConstants.statusCompleted &&
+                    order.rating != null) ...[
+                  const Divider(height: 16),
+                  Row(
+                    children: [
+                      ...List.generate(5, (i) => Icon(
+                        i < order.rating! ? Icons.star : Icons.star_border,
+                        size: 16,
+                        color: i < order.rating!
+                            ? const Color(0xFFFFC107)
+                            : AppColors.border,
+                      )),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${order.rating}/5',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (order.comment != null && order.comment!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '"${order.comment}"',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
                 if (next != null) ...[
                   const SizedBox(height: 12),
                   Row(

@@ -300,7 +300,7 @@ class OrderTrackingScreen extends StatelessWidget {
 
                 if (current.status == AppConstants.statusCompleted &&
                     current.rating != null)
-                  _RatedCard(rating: current.rating!),
+                  _RatedCard(rating: current.rating!, comment: current.comment),
 
                 const SizedBox(height: 16),
 
@@ -496,12 +496,23 @@ class _RatingCard extends StatefulWidget {
 class _RatingCardState extends State<_RatingCard> {
   int _selected = 0;
   bool _submitting = false;
+  final _commentController = TextEditingController();
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     if (_selected == 0) return;
     setState(() => _submitting = true);
     await widget.db.rateOrder(
-        widget.order.id, widget.order.sellerId, _selected);
+      widget.order.id,
+      widget.order.sellerId,
+      _selected,
+      comment: _commentController.text,
+    );
     // Stream will update order.rating — card swaps automatically
   }
 
@@ -557,7 +568,37 @@ class _RatingCardState extends State<_RatingCard> {
               );
             }),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _commentController,
+            maxLines: 3,
+            maxLength: 200,
+            decoration: InputDecoration(
+              hintText: 'Add a comment (optional)',
+              hintStyle: const TextStyle(
+                  fontSize: 13, color: AppColors.textHint),
+              filled: true,
+              fillColor: AppColors.background,
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 1.5),
+              ),
+              counterStyle: const TextStyle(
+                  fontSize: 11, color: AppColors.textHint),
+            ),
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             height: 46,
@@ -666,7 +707,8 @@ class _CancelOrderButtonState extends State<_CancelOrderButton> {
 
 class _RatedCard extends StatelessWidget {
   final int rating;
-  const _RatedCard({required this.rating});
+  final String? comment;
+  const _RatedCard({required this.rating, this.comment});
 
   @override
   Widget build(BuildContext context) {
@@ -710,6 +752,26 @@ class _RatedCard extends StatelessWidget {
               );
             }),
           ),
+          if (comment != null && comment!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '"$comment"',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
