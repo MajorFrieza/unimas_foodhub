@@ -242,6 +242,8 @@ class AuthProvider with ChangeNotifier {
     String? stallName,
     String? description,
     String? location,
+    double? latitude,
+    double? longitude,
     String? phone,
     String? cuisineType,
     String? imageUrl,
@@ -249,15 +251,23 @@ class AuthProvider with ChangeNotifier {
     String? openUntil,
   }) {
     if (_seller != null) {
-      _seller = _seller!.copyWith(
-        stallName: stallName,
-        description: description,
-        location: location,
-        phone: phone,
-        cuisineType: cuisineType,
-        imageUrl: imageUrl,
-        openFrom: openFrom,
-        openUntil: openUntil,
+      _seller = SellerModel(
+        uid: _seller!.uid,
+        stallName: stallName ?? _seller!.stallName,
+        ownerName: _seller!.ownerName,
+        email: _seller!.email,
+        phone: phone ?? _seller!.phone,
+        description: description ?? _seller!.description,
+        isOpen: _seller!.isOpen,
+        imageUrl: imageUrl ?? _seller!.imageUrl,
+        location: location ?? _seller!.location,
+        latitude: latitude,
+        longitude: longitude,
+        cuisineType: cuisineType ?? _seller!.cuisineType,
+        rating: _seller!.rating,
+        openFrom: openFrom ?? _seller!.openFrom,
+        openUntil: openUntil ?? _seller!.openUntil,
+        createdAt: _seller!.createdAt,
       );
       notifyListeners();
     }

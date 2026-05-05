@@ -8,6 +8,8 @@ class SellerModel {
   final bool isOpen;
   final String? imageUrl;
   final String? location;
+  final double? latitude;
+  final double? longitude;
   final String cuisineType;
   final double rating;
   final String openFrom;
@@ -24,6 +26,8 @@ class SellerModel {
     required this.isOpen,
     this.imageUrl,
     this.location,
+    this.latitude,
+    this.longitude,
     this.cuisineType = 'Others',
     this.rating = 0.0,
     this.openFrom = '08:00',
@@ -58,6 +62,8 @@ class SellerModel {
       isOpen: map['isOpen'] ?? false,
       imageUrl: map['imageUrl'],
       location: map['location'],
+      latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
+      longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
       cuisineType: map['cuisineType'] ?? 'Others',
       rating: (map['rating'] ?? 0.0).toDouble(),
       openFrom: map['openFrom'] ?? '08:00',
@@ -78,6 +84,8 @@ class SellerModel {
       'isOpen': isOpen,
       'imageUrl': imageUrl,
       'location': location,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
       'cuisineType': cuisineType,
       'rating': rating,
       'openFrom': openFrom,
@@ -95,6 +103,8 @@ class SellerModel {
     bool? isOpen,
     String? imageUrl,
     String? location,
+    double? latitude,
+    double? longitude,
     String? cuisineType,
     double? rating,
     String? openFrom,
@@ -110,6 +120,8 @@ class SellerModel {
       isOpen: isOpen ?? this.isOpen,
       imageUrl: imageUrl ?? this.imageUrl,
       location: location ?? this.location,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       cuisineType: cuisineType ?? this.cuisineType,
       rating: rating ?? this.rating,
       openFrom: openFrom ?? this.openFrom,

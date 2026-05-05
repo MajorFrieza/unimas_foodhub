@@ -166,6 +166,14 @@ class SellerSettingsScreen extends StatelessWidget {
                   ),
                   const Divider(height: 1),
                   _InfoRow(
+                    icon: Icons.pin_drop_outlined,
+                    label: 'GPS Coordinates',
+                    value: (seller?.latitude != null && seller?.longitude != null)
+                        ? '${seller!.latitude!.toStringAsFixed(6)}, ${seller.longitude!.toStringAsFixed(6)}'
+                        : '—',
+                  ),
+                  const Divider(height: 1),
+                  _InfoRow(
                     icon: Icons.restaurant_outlined,
                     label: 'Cuisine Type',
                     value: seller?.cuisineType ?? '—',
@@ -296,6 +304,8 @@ class _EditStallSheetState extends State<_EditStallSheet> {
   late final TextEditingController _stallNameCtrl;
   late final TextEditingController _descCtrl;
   late final TextEditingController _locationCtrl;
+  late final TextEditingController _latCtrl;
+  late final TextEditingController _lngCtrl;
   late final TextEditingController _phoneCtrl;
   String? _imageData;
   late String _selectedCuisine;
@@ -310,6 +320,10 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     _stallNameCtrl = TextEditingController(text: s?.stallName ?? '');
     _descCtrl = TextEditingController(text: s?.description ?? '');
     _locationCtrl = TextEditingController(text: s?.location ?? '');
+    _latCtrl = TextEditingController(
+        text: s?.latitude != null ? '${s!.latitude}' : '');
+    _lngCtrl = TextEditingController(
+        text: s?.longitude != null ? '${s!.longitude}' : '');
     _phoneCtrl = TextEditingController(text: s?.phone ?? '');
     _imageData = s?.imageUrl;
     _selectedCuisine = s?.cuisineType ?? 'Malay';
@@ -328,6 +342,8 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     _stallNameCtrl.dispose();
     _descCtrl.dispose();
     _locationCtrl.dispose();
+    _latCtrl.dispose();
+    _lngCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
   }
@@ -342,10 +358,14 @@ class _EditStallSheetState extends State<_EditStallSheet> {
       final imageUrl = _imageData;
       final openFrom = _formatTime(_openFrom);
       final openUntil = _formatTime(_openUntil);
+      final lat = double.tryParse(_latCtrl.text.trim());
+      final lng = double.tryParse(_lngCtrl.text.trim());
       await db.updateSellerProfile(widget.auth.currentUserId, {
         'stallName': stallName,
         'description': _descCtrl.text.trim(),
         'location': _locationCtrl.text.trim(),
+        'latitude': lat,
+        'longitude': lng,
         'phone': _phoneCtrl.text.trim(),
         'cuisineType': _selectedCuisine,
         'imageUrl': imageUrl,
@@ -356,6 +376,8 @@ class _EditStallSheetState extends State<_EditStallSheet> {
         stallName: stallName,
         description: _descCtrl.text.trim(),
         location: _locationCtrl.text.trim(),
+        latitude: lat,
+        longitude: lng,
         phone: _phoneCtrl.text.trim(),
         cuisineType: _selectedCuisine,
         imageUrl: imageUrl,
@@ -495,6 +517,68 @@ class _EditStallSheetState extends State<_EditStallSheet> {
               controller: _locationCtrl,
               hint: 'e.g. Cafe Utama, Level 1',
               icon: Icons.location_on_outlined,
+            ),
+            const SizedBox(height: 14),
+
+            _fieldLabel('GPS Coordinates (for map pin)'),
+            if (_latCtrl.text.isNotEmpty && _lngCtrl.text.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on,
+                        size: 16, color: AppColors.success),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${_latCtrl.text}, ${_lngCtrl.text}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _latCtrl.clear();
+                        _lngCtrl.clear();
+                      }),
+                      child: const Icon(Icons.close,
+                          size: 16, color: AppColors.success),
+                    ),
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: _textField(
+                    controller: _latCtrl,
+                    hint: 'Latitude',
+                    icon: Icons.my_location_outlined,
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true, signed: true),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _textField(
+                    controller: _lngCtrl,
+                    hint: 'Longitude',
+                    icon: Icons.my_location_outlined,
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true, signed: true),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 14),
 

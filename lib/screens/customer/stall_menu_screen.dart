@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/menu_item_model.dart';
 import '../../models/order_model.dart';
 import '../../models/seller_model.dart';
@@ -50,6 +51,27 @@ class _StallMenuScreenState extends State<StallMenuScreen>
     if (customerId.isEmpty) return;
     final result = await _db.isFavoriteStall(customerId, _seller!.uid);
     if (mounted) setState(() => _isFavorited = result);
+  }
+
+  Future<void> _openInMaps(BuildContext context, SellerModel seller) async {
+    final Uri url;
+    if (seller.latitude != null && seller.longitude != null) {
+      final label = Uri.encodeComponent(seller.stallName);
+      url = Uri.parse(
+          'https://www.google.com/maps?q=${seller.latitude},${seller.longitude}&z=19&label=$label');
+    } else {
+      final query = Uri.encodeComponent(
+          '${seller.stallName}, ${seller.location}, UNIMAS Kota Samarahan');
+      url = Uri.parse(
+          'https://www.google.com/maps/search/?api=1&query=$query');
+    }
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open Google Maps')),
+        );
+      }
+    }
   }
 
   Future<void> _toggleFavorite() async {
@@ -239,14 +261,39 @@ class _StallMenuScreenState extends State<StallMenuScreen>
                       const SizedBox(width: 10),
                       if (seller.location != null &&
                           seller.location!.isNotEmpty) ...[
-                        const Icon(Icons.location_on_outlined,
-                            size: 14, color: AppColors.textSecondary),
-                        const SizedBox(width: 3),
-                        Text(
-                          seller.location!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                        GestureDetector(
+                          onTap: () => _openInMaps(context, seller),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.location_on,
+                                    size: 12, color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 140),
+                                  child: Text(
+                                    seller.location!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.map_outlined,
+                                    size: 11, color: AppColors.primary),
+                              ],
+                            ),
                           ),
                         ),
                       ],
