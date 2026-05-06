@@ -481,7 +481,7 @@ class _RecentOrderTile extends StatelessWidget {
                 const SizedBox(height: 6),
               if (_nextStatus(order.status) != null)
                 GestureDetector(
-                  onTap: () => onUpdateStatus(_nextStatus(order.status)!),
+                  onTap: () => _confirmAndUpdate(context),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 4),
@@ -504,6 +504,69 @@ class _RecentOrderTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmAndUpdate(BuildContext context) async {
+    final next = _nextStatus(order.status);
+    if (next == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          _nextLabel(order.status)!,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          _confirmMessage(order.status),
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+              side: const BorderSide(color: AppColors.border),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Go Back'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(_nextLabel(order.status)!),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) onUpdateStatus(next);
+  }
+
+  String _confirmMessage(String status) {
+    switch (status) {
+      case AppConstants.statusPending:
+        return 'Accept this order and notify the customer?';
+      case AppConstants.statusConfirmed:
+        return 'Start preparing this order now?';
+      case AppConstants.statusPreparing:
+        return 'Mark this order as ready for pickup?';
+      case AppConstants.statusReady:
+        return 'Mark this order as completed?';
+      default:
+        return 'Proceed with this action?';
+    }
   }
 
   Widget _statusBadge(String status) {

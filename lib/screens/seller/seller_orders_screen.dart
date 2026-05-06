@@ -55,8 +55,8 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen>
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.primary,
           indicatorWeight: 2.5,
-          labelStyle: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600),
+          labelStyle:
+              const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'Active'),
             Tab(text: 'History'),
@@ -136,11 +136,98 @@ class _OrderList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: orders.length,
-      itemBuilder: (context, i) =>
-          _OrderCard(order: orders[i], db: db),
+      itemBuilder: (context, i) => _OrderCard(order: orders[i], db: db),
     );
   }
 }
+
+// ─── Step indicator ────────────────────────────────────────────────────────────
+
+class _StepIndicator extends StatelessWidget {
+  final String currentStatus;
+
+  static const _steps = ['New', 'Confirmed', 'Preparing', 'Ready'];
+  static const _statuses = [
+    AppConstants.statusPending,
+    AppConstants.statusConfirmed,
+    AppConstants.statusPreparing,
+    AppConstants.statusReady,
+  ];
+
+  const _StepIndicator({required this.currentStatus});
+
+  @override
+  Widget build(BuildContext context) {
+    final currentIndex = _statuses.indexOf(currentStatus);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
+      child: Row(
+        children: List.generate(_steps.length * 2 - 1, (i) {
+          if (i.isOdd) {
+            // Connector line
+            final stepIndex = i ~/ 2;
+            final passed = stepIndex < currentIndex;
+            return Expanded(
+              child: Container(
+                height: 2,
+                color: passed
+                    ? AppColors.primary
+                    : AppColors.border,
+              ),
+            );
+          }
+          // Step dot
+          final stepIndex = i ~/ 2;
+          final isDone = stepIndex < currentIndex;
+          final isCurrent = stepIndex == currentIndex;
+
+          return Column(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDone
+                      ? AppColors.primary
+                      : isCurrent
+                          ? AppColors.primary
+                          : Colors.white,
+                  border: Border.all(
+                    color: isDone || isCurrent
+                        ? AppColors.primary
+                        : AppColors.border,
+                    width: 2,
+                  ),
+                ),
+                child: isDone
+                    ? const Icon(Icons.check, size: 13, color: Colors.white)
+                    : isCurrent
+                        ? const Icon(Icons.circle, size: 8, color: Colors.white)
+                        : null,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _steps[stepIndex],
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight:
+                      isCurrent ? FontWeight.w700 : FontWeight.w400,
+                  color: isDone || isCurrent
+                      ? AppColors.primary
+                      : AppColors.textHint,
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+// ─── Order card ────────────────────────────────────────────────────────────────
 
 class _OrderCard extends StatelessWidget {
   final OrderModel order;
@@ -148,10 +235,113 @@ class _OrderCard extends StatelessWidget {
 
   const _OrderCard({required this.order, required this.db});
 
+  Future<void> _advance(BuildContext context) async {
+    final next = _nextStatus(order.status);
+    if (next == null) return;
+
+    final label = _nextLabel(order.status)!;
+    final confirmed = await _showConfirmDialog(
+      context,
+      title: label,
+      message: _confirmMessage(order.status),
+      confirmLabel: label,
+      confirmColor: next == AppConstants.statusCompleted
+          ? AppColors.accent
+          : AppColors.primary,
+    );
+    if (confirmed == true) {
+      await db.updateOrderStatus(order.id, next);
+    }
+  }
+
+  Future<void> _cancel(BuildContext context) async {
+    final confirmed = await _showConfirmDialog(
+      context,
+      title: 'Cancel Order',
+      message:
+          'Are you sure you want to cancel this order? The customer will be notified.',
+      confirmLabel: 'Yes, Cancel',
+      confirmColor: AppColors.error,
+    );
+    if (confirmed == true) {
+      await db.updateOrderStatus(order.id, AppConstants.statusCancelled);
+    }
+  }
+
+  Future<bool?> _showConfirmDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required Color confirmColor,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+              side: const BorderSide(color: AppColors.border),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Go Back'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: confirmColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _confirmMessage(String status) {
+    switch (status) {
+      case AppConstants.statusPending:
+        return 'Accept this order and notify the customer?';
+      case AppConstants.statusConfirmed:
+        return 'Start preparing this order now?';
+      case AppConstants.statusPreparing:
+        return 'Mark this order as ready for pickup?';
+      case AppConstants.statusReady:
+        return 'Mark this order as completed?';
+      default:
+        return 'Proceed with this action?';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final date = DateFormat('d MMM, h:mm a').format(order.createdAt);
     final next = _nextStatus(order.status);
+    final isActive = next != null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -200,7 +390,15 @@ class _OrderCard extends StatelessWidget {
               ],
             ),
           ),
+
+          // Step progress (active orders only)
+          if (isActive) ...[
+            const Divider(height: 1),
+            _StepIndicator(currentStatus: order.status),
+          ],
+
           const Divider(height: 1),
+
           // Items
           Padding(
             padding: const EdgeInsets.all(14),
@@ -261,19 +459,24 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 // Rating & comment (completed orders only)
                 if (order.status == AppConstants.statusCompleted &&
                     order.rating != null) ...[
                   const Divider(height: 16),
                   Row(
                     children: [
-                      ...List.generate(5, (i) => Icon(
-                        i < order.rating! ? Icons.star : Icons.star_border,
-                        size: 16,
-                        color: i < order.rating!
-                            ? const Color(0xFFFFC107)
-                            : AppColors.border,
-                      )),
+                      ...List.generate(
+                          5,
+                          (i) => Icon(
+                                i < order.rating!
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                size: 16,
+                                color: i < order.rating!
+                                    ? const Color(0xFFFFC107)
+                                    : AppColors.border,
+                              )),
                       const SizedBox(width: 6),
                       Text(
                         '${order.rating}/5',
@@ -285,7 +488,8 @@ class _OrderCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (order.comment != null && order.comment!.isNotEmpty) ...[
+                  if (order.comment != null &&
+                      order.comment!.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Container(
                       width: double.infinity,
@@ -305,14 +509,15 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ],
                 ],
-                if (next != null) ...[
+
+                // Action buttons (active orders only)
+                if (isActive) ...[
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => db.updateOrderStatus(
-                              order.id, AppConstants.statusCancelled),
+                          onPressed: () => _cancel(context),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.error,
                             side: const BorderSide(color: AppColors.error),
@@ -329,8 +534,7 @@ class _OrderCard extends StatelessWidget {
                       Expanded(
                         flex: 2,
                         child: ElevatedButton(
-                          onPressed: () =>
-                              db.updateOrderStatus(order.id, next),
+                          onPressed: () => _advance(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.accent,
                             foregroundColor: Colors.white,
@@ -388,6 +592,8 @@ class _OrderCard extends StatelessWidget {
     }
   }
 }
+
+// ─── Status badge ──────────────────────────────────────────────────────────────
 
 class _StatusBadge extends StatelessWidget {
   final String status;
