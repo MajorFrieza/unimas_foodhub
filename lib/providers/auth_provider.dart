@@ -247,8 +247,7 @@ class AuthProvider with ChangeNotifier {
     String? phone,
     String? cuisineType,
     String? imageUrl,
-    String? openFrom,
-    String? openUntil,
+    Map<String, Map<String, dynamic>>? operatingHours,
   }) {
     if (_seller != null) {
       _seller = SellerModel(
@@ -265,8 +264,7 @@ class AuthProvider with ChangeNotifier {
         longitude: longitude,
         cuisineType: cuisineType ?? _seller!.cuisineType,
         rating: _seller!.rating,
-        openFrom: openFrom ?? _seller!.openFrom,
-        openUntil: openUntil ?? _seller!.openUntil,
+        operatingHours: operatingHours ?? _seller!.operatingHours,
         createdAt: _seller!.createdAt,
       );
       notifyListeners();

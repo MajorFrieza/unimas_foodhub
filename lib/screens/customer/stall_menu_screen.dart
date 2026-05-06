@@ -182,9 +182,7 @@ class _StallMenuScreenState extends State<StallMenuScreen>
                                   color: Colors.white, size: 12),
                               const SizedBox(width: 4),
                               Text(
-                                seller.isEffectivelyOpen
-                                    ? 'Open until ${seller.openUntil}'
-                                    : 'Closed',
+                                seller.openStatusText,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
@@ -307,8 +305,7 @@ class _StallMenuScreenState extends State<StallMenuScreen>
                         color: AppColors.warning.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color:
-                                AppColors.warning.withValues(alpha: 0.3)),
+                            color: AppColors.warning.withValues(alpha: 0.3)),
                       ),
                       child: const Row(
                         children: [
@@ -325,6 +322,10 @@ class _StallMenuScreenState extends State<StallMenuScreen>
                         ],
                       ),
                     ),
+                  if (seller.operatingHours != null) ...[
+                    const SizedBox(height: 12),
+                    _OperatingHoursSection(seller: seller),
+                  ],
                 ],
               ),
             ),
@@ -722,6 +723,160 @@ class _ReviewsTab extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+// ─── Operating Hours Section ──────────────────────────────────────────────────
+
+class _OperatingHoursSection extends StatefulWidget {
+  final SellerModel seller;
+  const _OperatingHoursSection({required this.seller});
+
+  @override
+  State<_OperatingHoursSection> createState() =>
+      _OperatingHoursSectionState();
+}
+
+class _OperatingHoursSectionState extends State<_OperatingHoursSection> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final hours = widget.seller.operatingHours!;
+    final todayIndex = DateTime.now().weekday - 1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            children: [
+              const Icon(Icons.access_time_outlined,
+                  size: 15, color: AppColors.primary),
+              const SizedBox(width: 6),
+              const Text(
+                'Operating Hours',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                _expanded ? Icons.expand_less : Icons.expand_more,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              children: List.generate(SellerModel.dayKeys.length, (i) {
+                final key = SellerModel.dayKeys[i];
+                final label = SellerModel.dayLabels[i];
+                final day = hours[key];
+                final isOpen = day?['isOpen'] as bool? ?? false;
+                final isToday = i == todayIndex;
+                final from = isOpen
+                    ? SellerModel.formatDisplayTime(
+                        day?['openFrom'] ?? '08:00')
+                    : null;
+                final until = isOpen
+                    ? SellerModel.formatDisplayTime(
+                        day?['openUntil'] ?? '17:00')
+                    : null;
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  decoration: isToday
+                      ? BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(6),
+                        )
+                      : null,
+                  child: Row(
+                    children: [
+                      if (isToday)
+                        const SizedBox(width: 6)
+                      else
+                        const SizedBox(width: 6),
+                      SizedBox(
+                        width: 90,
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isToday
+                                ? FontWeight.w700
+                                : FontWeight.normal,
+                            color: isToday
+                                ? AppColors.primary
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        isOpen ? '$from – $until' : 'Closed',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isToday
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          color: isToday && isOpen
+                              ? AppColors.primary
+                              : isOpen
+                                  ? AppColors.textSecondary
+                                  : AppColors.textHint,
+                        ),
+                      ),
+                      if (isToday) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: (isOpen && widget.seller.isEffectivelyOpen
+                                    ? AppColors.success
+                                    : AppColors.error)
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            isOpen && widget.seller.isEffectivelyOpen
+                                ? 'Now open'
+                                : 'Closed now',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isOpen && widget.seller.isEffectivelyOpen
+                                  ? AppColors.success
+                                  : AppColors.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+          crossFadeState: _expanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
+      ],
     );
   }
 }

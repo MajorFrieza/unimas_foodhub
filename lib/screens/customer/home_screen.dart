@@ -570,9 +570,7 @@ class _RestaurantCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 5),
                             Text(
-                              seller.isEffectivelyOpen
-                                  ? 'Open until ${seller.openUntil}'
-                                  : 'Closed',
+                              seller.openStatusText,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,

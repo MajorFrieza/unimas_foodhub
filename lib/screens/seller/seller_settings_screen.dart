@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/seller_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
@@ -54,7 +55,6 @@ class SellerSettingsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 28),
               child: Column(
                 children: [
-                  // Avatar — stall image or initial letter
                   Container(
                     width: 80,
                     height: 80,
@@ -168,7 +168,8 @@ class SellerSettingsScreen extends StatelessWidget {
                   _InfoRow(
                     icon: Icons.pin_drop_outlined,
                     label: 'GPS Coordinates',
-                    value: (seller?.latitude != null && seller?.longitude != null)
+                    value: (seller?.latitude != null &&
+                            seller?.longitude != null)
                         ? '${seller!.latitude!.toStringAsFixed(6)}, ${seller.longitude!.toStringAsFixed(6)}'
                         : '—',
                   ),
@@ -187,11 +188,8 @@ class SellerSettingsScreen extends StatelessWidget {
                         : '—',
                   ),
                   const Divider(height: 1),
-                  _InfoRow(
-                    icon: Icons.access_time_outlined,
-                    label: 'Operating Hours',
-                    value: '${seller?.openFrom ?? '08:00'} – ${seller?.openUntil ?? '17:00'}',
-                  ),
+                  _ScheduleInfoRow(
+                      operatingHours: seller?.operatingHours),
                 ],
               ),
             ),
@@ -290,6 +288,20 @@ class SellerSettingsScreen extends StatelessWidget {
   }
 }
 
+// ─── Day schedule data class ──────────────────────────────────────────────────
+
+class _DaySchedule {
+  bool isOpen;
+  TimeOfDay openFrom;
+  TimeOfDay openUntil;
+
+  _DaySchedule({
+    required this.isOpen,
+    required this.openFrom,
+    required this.openUntil,
+  });
+}
+
 // ─── Edit Bottom Sheet ────────────────────────────────────────────────────────
 
 class _EditStallSheet extends StatefulWidget {
@@ -309,8 +321,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
   late final TextEditingController _phoneCtrl;
   String? _imageData;
   late String _selectedCuisine;
-  late TimeOfDay _openFrom;
-  late TimeOfDay _openUntil;
+  late Map<String, _DaySchedule> _schedule;
   bool _saving = false;
 
   @override
@@ -327,13 +338,27 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     _phoneCtrl = TextEditingController(text: s?.phone ?? '');
     _imageData = s?.imageUrl;
     _selectedCuisine = s?.cuisineType ?? 'Malay';
-    _openFrom = _parseTime(s?.openFrom ?? '08:00');
-    _openUntil = _parseTime(s?.openUntil ?? '17:00');
+
     // Ensure selected cuisine is valid
     final validTypes =
         AppConstants.cuisineTypes.where((c) => c != 'All').toList();
     if (!validTypes.contains(_selectedCuisine)) {
       _selectedCuisine = validTypes.first;
+    }
+
+    // Build per-day schedule from existing data or defaults (Mon–Fri open, Sat–Sun closed)
+    _schedule = {};
+    for (var i = 0; i < SellerModel.dayKeys.length; i++) {
+      final key = SellerModel.dayKeys[i];
+      final dayData = s?.operatingHours?[key];
+      final defaultOpen = i < 5;
+      _schedule[key] = _DaySchedule(
+        isOpen: dayData != null
+            ? (dayData['isOpen'] as bool? ?? false)
+            : defaultOpen,
+        openFrom: _parseTime(dayData?['openFrom'] ?? '08:00'),
+        openUntil: _parseTime(dayData?['openUntil'] ?? '17:00'),
+      );
     }
   }
 
@@ -355,11 +380,19 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     setState(() => _saving = true);
     try {
       final db = DatabaseService();
-      final imageUrl = _imageData;
-      final openFrom = _formatTime(_openFrom);
-      final openUntil = _formatTime(_openUntil);
       final lat = double.tryParse(_latCtrl.text.trim());
       final lng = double.tryParse(_lngCtrl.text.trim());
+
+      final operatingHours = <String, Map<String, dynamic>>{};
+      for (final key in _schedule.keys) {
+        final day = _schedule[key]!;
+        operatingHours[key] = {
+          'isOpen': day.isOpen,
+          'openFrom': _fmt(day.openFrom),
+          'openUntil': _fmt(day.openUntil),
+        };
+      }
+
       await db.updateSellerProfile(widget.auth.currentUserId, {
         'stallName': stallName,
         'description': _descCtrl.text.trim(),
@@ -368,9 +401,8 @@ class _EditStallSheetState extends State<_EditStallSheet> {
         'longitude': lng,
         'phone': _phoneCtrl.text.trim(),
         'cuisineType': _selectedCuisine,
-        'imageUrl': imageUrl,
-        'openFrom': openFrom,
-        'openUntil': openUntil,
+        'imageUrl': _imageData,
+        'operatingHours': operatingHours,
       });
       widget.auth.updateSellerLocally(
         stallName: stallName,
@@ -380,9 +412,8 @@ class _EditStallSheetState extends State<_EditStallSheet> {
         longitude: lng,
         phone: _phoneCtrl.text.trim(),
         cuisineType: _selectedCuisine,
-        imageUrl: imageUrl,
-        openFrom: openFrom,
-        openUntil: openUntil,
+        imageUrl: _imageData,
+        operatingHours: operatingHours,
       );
       if (mounted) Navigator.pop(context);
     } catch (_) {
@@ -397,6 +428,51 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  TimeOfDay _parseTime(String t) {
+    try {
+      final parts = t.split(':');
+      return TimeOfDay(
+          hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    } catch (_) {
+      return const TimeOfDay(hour: 8, minute: 0);
+    }
+  }
+
+  String _fmt(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  String _displayTime(TimeOfDay t) {
+    final period = t.hour >= 12 ? 'PM' : 'AM';
+    final h = t.hour > 12 ? t.hour - 12 : (t.hour == 0 ? 12 : t.hour);
+    return '$h:${t.minute.toString().padLeft(2, '0')} $period';
+  }
+
+  Future<void> _pickDayTime(String dayKey, {required bool isFrom}) async {
+    final day = _schedule[dayKey]!;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isFrom ? day.openFrom : day.openUntil,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isFrom) {
+          day.openFrom = picked;
+        } else {
+          day.openUntil = picked;
+        }
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final data = await ImageHelper.pickFromGallery();
+    if (data != null) setState(() => _imageData = data);
   }
 
   @override
@@ -416,7 +492,6 @@ class _EditStallSheetState extends State<_EditStallSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle bar
             Center(
               child: Container(
                 width: 40,
@@ -438,7 +513,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
             ),
             const SizedBox(height: 20),
 
-            // Stall banner image preview
+            // Banner image
             GestureDetector(
               onTap: _pickImage,
               child: Container(
@@ -453,16 +528,13 @@ class _EditStallSheetState extends State<_EditStallSheet> {
                 clipBehavior: Clip.hardEdge,
                 child: _imageData != null
                     ? Stack(fit: StackFit.expand, children: [
-                        ImageHelper.buildImage(
-                          _imageData,
-                          placeholder: _imagePlaceholder(),
-                        ),
+                        ImageHelper.buildImage(_imageData,
+                            placeholder: _imagePlaceholder()),
                         Positioned(
                           top: 8,
                           right: 8,
                           child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _imageData = null),
+                            onTap: () => setState(() => _imageData = null),
                             child: Container(
                               padding: const EdgeInsets.all(5),
                               decoration: BoxDecoration(
@@ -497,27 +569,24 @@ class _EditStallSheetState extends State<_EditStallSheet> {
 
             _fieldLabel('Stall Name'),
             _textField(
-              controller: _stallNameCtrl,
-              hint: 'e.g. Mak Cik Nasi Lemak',
-              icon: Icons.store_outlined,
-            ),
+                controller: _stallNameCtrl,
+                hint: 'e.g. Mak Cik Nasi Lemak',
+                icon: Icons.store_outlined),
             const SizedBox(height: 14),
 
             _fieldLabel('Description'),
             _textField(
-              controller: _descCtrl,
-              hint: 'Brief description of your stall',
-              icon: Icons.description_outlined,
-              maxLines: 2,
-            ),
+                controller: _descCtrl,
+                hint: 'Brief description of your stall',
+                icon: Icons.description_outlined,
+                maxLines: 2),
             const SizedBox(height: 14),
 
             _fieldLabel('Location'),
             _textField(
-              controller: _locationCtrl,
-              hint: 'e.g. Cafe Utama, Level 1',
-              icon: Icons.location_on_outlined,
-            ),
+                controller: _locationCtrl,
+                hint: 'e.g. Cafe Utama, Level 1',
+                icon: Icons.location_on_outlined),
             const SizedBox(height: 14),
 
             _fieldLabel('GPS Coordinates (for map pin)'),
@@ -584,99 +653,131 @@ class _EditStallSheetState extends State<_EditStallSheet> {
 
             _fieldLabel('Phone Number'),
             _textField(
-              controller: _phoneCtrl,
-              hint: 'e.g. 011-12345678',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-            ),
+                controller: _phoneCtrl,
+                hint: 'e.g. 011-12345678',
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone),
             const SizedBox(height: 16),
 
+            // ── Operating hours ──────────────────────────────────────────────
             _fieldLabel('Operating Hours'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _pickTime(isFrom: true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.access_time,
-                              size: 18, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Opens',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textHint)),
-                              Text(
-                                _formatTime(_openFrom),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: List.generate(SellerModel.dayKeys.length, (i) {
+                  final key = SellerModel.dayKeys[i];
+                  final label = SellerModel.dayShort[i];
+                  final day = _schedule[key]!;
+                  final isLast = i == SellerModel.dayKeys.length - 1;
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 32,
+                              child: Text(
+                                label,
                                 style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('–',
-                      style: TextStyle(
-                          fontSize: 18, color: AppColors.textSecondary)),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _pickTime(isFrom: false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.access_time_filled,
-                              size: 18, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Closes',
+                            ),
+                            Switch(
+                              value: day.isOpen,
+                              onChanged: (v) =>
+                                  setState(() => day.isOpen = v),
+                              activeThumbColor: AppColors.success,
+                              activeTrackColor:
+                                  AppColors.success.withValues(alpha: 0.3),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            if (day.isOpen) ...[
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _pickDayTime(key, isFrom: true),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _displayTime(day.openFrom),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 4),
+                                child: Text('–',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.textSecondary)),
+                              ),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      _pickDayTime(key, isFrom: false),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _displayTime(day.openUntil),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ] else
+                              const Expanded(
+                                child: Text(
+                                  'Closed',
                                   style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textHint)),
-                              Text(
-                                _formatTime(_openUntil),
-                                style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary),
+                                    fontSize: 12,
+                                    color: AppColors.textHint,
+                                  ),
+                                ),
                               ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
+                      if (!isLast)
+                        const Divider(
+                            height: 1, indent: 14, endIndent: 14),
+                    ],
+                  );
+                }),
+              ),
             ),
             const SizedBox(height: 16),
 
+            // ── Cuisine type ─────────────────────────────────────────────────
             _fieldLabel('Cuisine Type'),
             const SizedBox(height: 8),
             Wrap(
@@ -705,9 +806,8 @@ class _EditStallSheetState extends State<_EditStallSheet> {
                       c,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
                         color: selected
                             ? Colors.white
                             : AppColors.textSecondary,
@@ -751,39 +851,6 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     );
   }
 
-  TimeOfDay _parseTime(String t) {
-    try {
-      final parts = t.split(':');
-      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-    } catch (_) {
-      return const TimeOfDay(hour: 8, minute: 0);
-    }
-  }
-
-  String _formatTime(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-
-  Future<void> _pickTime({required bool isFrom}) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: isFrom ? _openFrom : _openUntil,
-    );
-    if (picked != null) {
-      setState(() {
-        if (isFrom) {
-          _openFrom = picked;
-        } else {
-          _openUntil = picked;
-        }
-      });
-    }
-  }
-
-  Future<void> _pickImage() async {
-    final data = await ImageHelper.pickFromGallery();
-    if (data != null) setState(() => _imageData = data);
-  }
-
   Widget _imagePlaceholder() => Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -805,8 +872,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
                   color: AppColors.primary)),
           const SizedBox(height: 2),
           const Text('Tap to pick from gallery',
-              style:
-                  TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
         ],
       );
 
@@ -879,6 +945,84 @@ class _InfoRow extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 14, color: AppColors.textPrimary)),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Schedule Info Row (read-only) ────────────────────────────────────────────
+
+class _ScheduleInfoRow extends StatelessWidget {
+  final Map<String, Map<String, dynamic>>? operatingHours;
+  const _ScheduleInfoRow({this.operatingHours});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.access_time_outlined,
+              size: 20, color: AppColors.primary),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Operating Hours',
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.textHint)),
+                const SizedBox(height: 6),
+                if (operatingHours == null)
+                  const Text('Not set',
+                      style: TextStyle(
+                          fontSize: 14, color: AppColors.textPrimary))
+                else
+                  ...List.generate(SellerModel.dayKeys.length, (i) {
+                    final key = SellerModel.dayKeys[i];
+                    final label = SellerModel.dayLabels[i];
+                    final day = operatingHours![key];
+                    final isOpen = day?['isOpen'] as bool? ?? false;
+                    final from = isOpen
+                        ? SellerModel.formatDisplayTime(
+                            day?['openFrom'] ?? '08:00')
+                        : null;
+                    final until = isOpen
+                        ? SellerModel.formatDisplayTime(
+                            day?['openUntil'] ?? '17:00')
+                        : null;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 90,
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            isOpen ? '$from – $until' : 'Closed',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isOpen
+                                  ? AppColors.textSecondary
+                                  : AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
           ),
         ],
       ),
