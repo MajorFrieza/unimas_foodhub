@@ -190,6 +190,8 @@ class SellerSettingsScreen extends StatelessWidget {
                   const Divider(height: 1),
                   _ScheduleInfoRow(
                       operatingHours: seller?.operatingHours),
+                  const Divider(height: 1),
+                  _QrInfoRow(qrUrl: seller?.paymentQrUrl),
                 ],
               ),
             ),
@@ -320,6 +322,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
   late final TextEditingController _lngCtrl;
   late final TextEditingController _phoneCtrl;
   String? _imageData;
+  String? _paymentQrData;
   late String _selectedCuisine;
   late Map<String, _DaySchedule> _schedule;
   bool _saving = false;
@@ -337,6 +340,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
         text: s?.longitude != null ? '${s!.longitude}' : '');
     _phoneCtrl = TextEditingController(text: s?.phone ?? '');
     _imageData = s?.imageUrl;
+    _paymentQrData = s?.paymentQrUrl;
     _selectedCuisine = s?.cuisineType ?? 'Malay';
 
     // Ensure selected cuisine is valid
@@ -402,6 +406,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
         'phone': _phoneCtrl.text.trim(),
         'cuisineType': _selectedCuisine,
         'imageUrl': _imageData,
+        'paymentQrUrl': _paymentQrData,
         'operatingHours': operatingHours,
       });
       widget.auth.updateSellerLocally(
@@ -413,6 +418,7 @@ class _EditStallSheetState extends State<_EditStallSheet> {
         phone: _phoneCtrl.text.trim(),
         cuisineType: _selectedCuisine,
         imageUrl: _imageData,
+        paymentQrUrl: _paymentQrData,
         operatingHours: operatingHours,
       );
       if (mounted) Navigator.pop(context);
@@ -659,6 +665,66 @@ class _EditStallSheetState extends State<_EditStallSheet> {
                 keyboardType: TextInputType.phone),
             const SizedBox(height: 16),
 
+            // ── Payment QR ──────────────────────────────────────────────────
+            _fieldLabel('Payment QR Code (DuitNow / TnG / Others)'),
+            GestureDetector(
+              onTap: () async {
+                final data = await ImageHelper.pickFromGallery();
+                if (data != null) setState(() => _paymentQrData = data);
+              },
+              child: Container(
+                height: 160,
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      width: 1.5),
+                ),
+                clipBehavior: Clip.hardEdge,
+                child: _paymentQrData != null
+                    ? Stack(fit: StackFit.expand, children: [
+                        ImageHelper.buildImage(_paymentQrData,
+                            fit: BoxFit.contain,
+                            placeholder: _qrPlaceholder()),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => _paymentQrData = null),
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close,
+                                  color: Colors.white, size: 14),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text('Tap to change',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 11)),
+                          ),
+                        ),
+                      ])
+                    : _qrPlaceholder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // ── Operating hours ──────────────────────────────────────────────
             _fieldLabel('Operating Hours'),
             Container(
@@ -851,6 +917,31 @@ class _EditStallSheetState extends State<_EditStallSheet> {
     );
   }
 
+  Widget _qrPlaceholder() => Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.qr_code_2,
+                color: AppColors.primary, size: 26),
+          ),
+          const SizedBox(height: 8),
+          const Text('Upload Payment QR',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary)),
+          const SizedBox(height: 2),
+          const Text('Screenshot your DuitNow / TnG QR',
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        ],
+      );
+
   Widget _imagePlaceholder() => Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -945,6 +1036,54 @@ class _InfoRow extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 14, color: AppColors.textPrimary)),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── QR Info Row (read-only) ─────────────────────────────────────────────────
+
+class _QrInfoRow extends StatelessWidget {
+  final String? qrUrl;
+  const _QrInfoRow({this.qrUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.qr_code_2, size: 20, color: AppColors.primary),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Payment QR',
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.textHint)),
+                const SizedBox(height: 6),
+                if (qrUrl == null)
+                  const Text('Not set',
+                      style: TextStyle(
+                          fontSize: 14, color: AppColors.textPrimary))
+                else
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: ImageHelper.buildImage(qrUrl,
+                          fit: BoxFit.contain,
+                          placeholder: const Icon(Icons.qr_code_2,
+                              color: AppColors.primary, size: 40)),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),

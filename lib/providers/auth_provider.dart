@@ -247,6 +247,7 @@ class AuthProvider with ChangeNotifier {
     String? phone,
     String? cuisineType,
     String? imageUrl,
+    String? paymentQrUrl,
     Map<String, Map<String, dynamic>>? operatingHours,
   }) {
     if (_seller != null) {
@@ -259,6 +260,7 @@ class AuthProvider with ChangeNotifier {
         description: description ?? _seller!.description,
         isOpen: _seller!.isOpen,
         imageUrl: imageUrl ?? _seller!.imageUrl,
+        paymentQrUrl: paymentQrUrl ?? _seller!.paymentQrUrl,
         location: location ?? _seller!.location,
         latitude: latitude,
         longitude: longitude,

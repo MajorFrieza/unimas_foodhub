@@ -13,6 +13,7 @@ class SellerModel {
   final String cuisineType;
   final double rating;
   final Map<String, Map<String, dynamic>>? operatingHours;
+  final String? paymentQrUrl;
   final DateTime createdAt;
 
   static const dayKeys = [
@@ -32,6 +33,7 @@ class SellerModel {
     required this.description,
     required this.isOpen,
     this.imageUrl,
+    this.paymentQrUrl,
     this.location,
     this.latitude,
     this.longitude,
@@ -118,6 +120,7 @@ class SellerModel {
       description: map['description'] ?? '',
       isOpen: map['isOpen'] ?? false,
       imageUrl: map['imageUrl'],
+      paymentQrUrl: map['paymentQrUrl'],
       location: map['location'],
       latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
       longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
@@ -139,6 +142,7 @@ class SellerModel {
       'description': description,
       'isOpen': isOpen,
       'imageUrl': imageUrl,
+      'paymentQrUrl': paymentQrUrl,
       'location': location,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
@@ -157,6 +161,7 @@ class SellerModel {
     String? description,
     bool? isOpen,
     String? imageUrl,
+    String? paymentQrUrl,
     String? location,
     double? latitude,
     double? longitude,
@@ -173,6 +178,7 @@ class SellerModel {
       description: description ?? this.description,
       isOpen: isOpen ?? this.isOpen,
       imageUrl: imageUrl ?? this.imageUrl,
+      paymentQrUrl: paymentQrUrl ?? this.paymentQrUrl,
       location: location ?? this.location,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,

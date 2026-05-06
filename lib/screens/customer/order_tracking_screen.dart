@@ -4,15 +4,31 @@ import '../../models/seller_model.dart';
 import '../../services/database_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
+import '../../utils/image_helper.dart';
 
-class OrderTrackingScreen extends StatelessWidget {
+class OrderTrackingScreen extends StatefulWidget {
   const OrderTrackingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final order =
+  State<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
+}
+
+class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
+  final db = DatabaseService();
+  late Future<SellerModel?> _sellerFuture;
+  late OrderModel _initialOrder;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initialOrder =
         ModalRoute.of(context)!.settings.arguments as OrderModel;
-    final db = DatabaseService();
+    _sellerFuture = db.getSeller(_initialOrder.sellerId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = _initialOrder;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -293,6 +309,24 @@ class OrderTrackingScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
+                // Payment QR card — shown for all active orders
+                if (current.status != AppConstants.statusCompleted &&
+                    current.status != AppConstants.statusCancelled)
+                  FutureBuilder<SellerModel?>(
+                    future: _sellerFuture,
+                    builder: (context, snap) {
+                      final qrUrl = snap.data?.paymentQrUrl;
+                      if (qrUrl == null || qrUrl.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      return _PaymentQrCard(
+                        qrUrl: qrUrl,
+                        total: current.totalAmount,
+                        stallName: current.stallName,
+                      );
+                    },
+                  ),
+
                 // Rating card — only when completed and not yet rated
                 if (current.status == AppConstants.statusCompleted &&
                     current.rating == null)
@@ -477,6 +511,122 @@ class _StepConnector extends StatelessWidget {
         width: 2,
         height: 28,
         color: done ? AppColors.success : AppColors.border,
+      ),
+    );
+  }
+}
+
+// ─── Payment QR Card ──────────────────────────────────────────────────────────
+
+class _PaymentQrCard extends StatelessWidget {
+  final String qrUrl;
+  final double total;
+  final String stallName;
+
+  const _PaymentQrCard({
+    required this.qrUrl,
+    required this.total,
+    required this.stallName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.qr_code_2,
+                    color: AppColors.primary, size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Payment',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'Scan QR to pay · DuitNow / TnG / Online Banking',
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 200,
+              height: 200,
+              child: ImageHelper.buildImage(
+                qrUrl,
+                fit: BoxFit.contain,
+                placeholder: const Center(
+                  child: Icon(Icons.qr_code_2,
+                      size: 60, color: AppColors.textHint),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Amount to pay: ',
+                  style: TextStyle(
+                      fontSize: 14, color: AppColors.textSecondary),
+                ),
+                Text(
+                  'RM ${total.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
