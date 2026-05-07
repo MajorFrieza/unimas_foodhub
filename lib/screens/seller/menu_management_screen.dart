@@ -259,7 +259,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
           '/seller/menu/add',
           arguments: const <String, dynamic>{},
         ),
-        backgroundColor: AppColors.accent,
+        backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

@@ -245,9 +245,7 @@ class _OrderCard extends StatelessWidget {
       title: label,
       message: _confirmMessage(order.status),
       confirmLabel: label,
-      confirmColor: next == AppConstants.statusCompleted
-          ? AppColors.accent
-          : AppColors.primary,
+      confirmColor: AppColors.primary,
     );
     if (confirmed == true) {
       await db.updateOrderStatus(order.id, next);
@@ -536,7 +534,7 @@ class _OrderCard extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: () => _advance(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
+                            backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(

@@ -124,13 +124,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(22),
-            child: Image.asset(
-              'assets/images/logo.png',
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.restaurant_menu,
-                size: 48,
-                color: AppColors.primary,
+            child: Transform.scale(
+              scale: 1.3,
+              child: Image.asset(
+                'assets/images/logo.png',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.restaurant_menu,
+                  size: 48,
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ),
@@ -171,24 +174,30 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       padding: const EdgeInsets.fromLTRB(28, 26, 28, 0),
       child: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Two-tone tagline
             RichText(
-              text: const TextSpan(
-                style: TextStyle(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(
                   fontSize: 27,
                   fontWeight: FontWeight.w800,
                   height: 1.25,
                 ),
                 children: [
-                  TextSpan(
+                  const TextSpan(
                     text: 'Skip the queue.\n',
                     style: TextStyle(color: AppColors.textPrimary),
                   ),
                   TextSpan(
                     text: 'Savour the flavour.',
-                    style: TextStyle(color: AppColors.primary),
+                    style: TextStyle(
+                      foreground: Paint()
+                        ..shader = const LinearGradient(
+                          colors: [Color(0xFF8B1538), Color(0xFFD4920A)],
+                        ).createShader(const Rect.fromLTWH(0, 0, 280, 0)),
+                    ),
                   ),
                 ],
               ),
@@ -198,6 +207,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
             const Text(
               'Order ahead from your favourite UNIMAS stalls\nand pick up when it\'s ready.',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.textSecondary,

@@ -486,7 +486,7 @@ class _RecentOrderTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -540,7 +540,7 @@ class _RecentOrderTile extends StatelessWidget {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(

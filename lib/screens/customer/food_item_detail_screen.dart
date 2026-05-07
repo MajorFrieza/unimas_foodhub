@@ -274,7 +274,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                           ? () => _addToCart(context, item, cart)
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(

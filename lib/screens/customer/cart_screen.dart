@@ -306,7 +306,7 @@ class CartScreen extends StatelessWidget {
                               ? null
                               : () => _placeOrder(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
+                            backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(

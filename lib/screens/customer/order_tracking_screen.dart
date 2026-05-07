@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/order_model.dart';
 import '../../models/seller_model.dart';
 import '../../services/database_service.dart';
+import '../../services/notification_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
 import '../../utils/image_helper.dart';
@@ -17,6 +18,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   final db = DatabaseService();
   late Future<SellerModel?> _sellerFuture;
   late OrderModel _initialOrder;
+  String? _lastNotifiedStatus;
 
   @override
   void didChangeDependencies() {
@@ -53,6 +55,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         stream: db.orderStream(order.id),
         builder: (context, snap) {
           final current = snap.data ?? order;
+          if (snap.data != null && snap.data!.status != _lastNotifiedStatus) {
+            _lastNotifiedStatus = snap.data!.status;
+            NotificationService.notifyStatusChange(
+                current.stallName, current.status);
+          }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
+import 'services/notification_service.dart';
 import 'utils/app_theme.dart';
 
 // ── Entry ────────────────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await NotificationService.init();
   runApp(const UnimasFoodHubApp());
 }
 
