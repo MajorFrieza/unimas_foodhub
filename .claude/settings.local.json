@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(flutter analyze *)",
-      "Bash(flutter pub *)",
-      "PowerShell($jpg = [System.IO.File]::ReadAllBytes\\(\"c:\\\\Users\\\\Predator\\\\Desktop\\\\unimas_foodhub\\\\assets\\\\images\\\\welcome_bg.jpg\"\\); \"JPG header: \" + \\($jpg[0].ToString\\(\"X2\"\\)\\) + \" \" + \\($jpg[1].ToString\\(\"X2\"\\)\\); $png = [System.IO.File]::ReadAllBytes\\(\"c:\\\\Users\\\\Predator\\\\Desktop\\\\unimas_foodhub\\\\assets\\\\images\\\\logo.png\"\\); \"PNG header: \" + \\($png[0].ToString\\(\"X2\"\\)\\) + \" \" + \\($png[1].ToString\\(\"X2\"\\)\\) + \" \" + \\($png[2].ToString\\(\"X2\"\\)\\))"
-    ]
-  }
-}
