@@ -285,3 +285,61 @@ test("lets only the owning seller manage menu items and customers rate completed
   await assertFails(set(ref(customerDatabase, "orders/order-a/rating"), 4));
   await assertFails(set(ref(customerDatabase, "orders/order-b/rating"), 5));
 });
+
+test("preserves ratings when a customer submits no written comment", async () => {
+  const customerDatabase = testEnvironment
+    .authenticatedContext("customer-a")
+    .database();
+
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await set(ref(context.database(), "orders/order-a/status"), "completed");
+  });
+
+  await assertSucceeds(
+    update(ref(customerDatabase, "orders/order-a"), { rating: 4 }),
+  );
+  await assertFails(
+    update(ref(customerDatabase, "orders/order-a"), { rating: 5 }),
+  );
+
+  const savedOrder = await get(ref(customerDatabase, "orders/order-a"));
+  assert.equal(savedOrder.val().rating, 4);
+  assert.equal(savedOrder.val().comment, undefined);
+});
+
+test("publishes a completed order rating without exposing the private order", async () => {
+  const customerDatabase = testEnvironment
+    .authenticatedContext("customer-a")
+    .database();
+  const otherCustomerDatabase = testEnvironment
+    .authenticatedContext("customer-b")
+    .database();
+  const guestDatabase = testEnvironment.unauthenticatedContext().database();
+
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await set(ref(context.database(), "orders/order-a/status"), "completed");
+  });
+
+  await assertSucceeds(
+    update(ref(customerDatabase, "orders/order-a"), { rating: 5 }),
+  );
+  await assertSucceeds(
+    set(ref(customerDatabase, "sellers/seller-a/reviews/order-a"), {
+      customerName: "Customer",
+      rating: 5,
+      createdAt: 1,
+    }),
+  );
+  await assertSucceeds(
+    get(ref(otherCustomerDatabase, "sellers/seller-a/reviews/order-a")),
+  );
+  await assertFails(get(ref(otherCustomerDatabase, "orders/order-a")));
+  await assertFails(get(ref(guestDatabase, "sellers/seller-a/reviews/order-a")));
+  await assertFails(
+    set(ref(otherCustomerDatabase, "sellers/seller-a/reviews/order-b"), {
+      customerName: "Customer",
+      rating: 1,
+      createdAt: 1,
+    }),
+  );
+});

@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/menu_item_model.dart';
-import '../../models/order_model.dart';
+import '../../models/review_model.dart';
 import '../../models/seller_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/database_service.dart';
@@ -62,8 +62,7 @@ class _StallMenuScreenState extends State<StallMenuScreen>
     } else {
       final query = Uri.encodeComponent(
           '${seller.stallName}, ${seller.location}, UNIMAS Kota Samarahan');
-      url = Uri.parse(
-          'https://www.google.com/maps/search/?api=1&query=$query');
+      url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
     }
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
@@ -82,285 +81,299 @@ class _StallMenuScreenState extends State<StallMenuScreen>
     await _db.setFavoriteStall(customerId, _seller!.uid, next);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:
-            Text(next ? 'Added to favourites' : 'Removed from favourites'),
+        content: Text(next ? 'Added to favourites' : 'Removed from favourites'),
         duration: const Duration(seconds: 2),
-        backgroundColor:
-            next ? AppColors.success : AppColors.textSecondary,
+        backgroundColor: next ? AppColors.success : AppColors.textSecondary,
       ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final seller =
-        ModalRoute.of(context)!.settings.arguments as SellerModel;
+    final seller = ModalRoute.of(context)!.settings.arguments as SellerModel;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          // ── Hero image app bar ──────────────────────────────────────────
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            backgroundColor: AppColors.primary,
-            forceElevated: innerBoxIsScrolled,
-            leading: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.arrow_back_ios_new,
-                    color: Colors.white, size: 16),
-              ),
-            ),
-            actions: [
-              Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    _isFavorited ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorited ? Colors.red[300] : Colors.white,
-                    size: 18,
-                  ),
-                  onPressed: _toggleFavorite,
-                  constraints:
-                      const BoxConstraints(minWidth: 36, minHeight: 36),
-                  padding: EdgeInsets.zero,
-                ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ImageHelper.buildImage(
-                    seller.imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: _heroBg(),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.55),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: seller.isEffectivelyOpen
-                                ? AppColors.success
-                                : AppColors.error,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.access_time,
-                                  color: Colors.white, size: 12),
-                              const SizedBox(width: 4),
-                              Text(
-                                seller.openStatusText,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          seller.stallName,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Stall info card ─────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    seller.description.isNotEmpty
-                        ? seller.description
-                        : 'Authentic ${seller.cuisineType} cuisine.',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final contentWidth = constraints.maxWidth.clamp(0.0, 1120.0);
+          return Center(
+            child: SizedBox(
+              width: contentWidth,
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                  // ── Hero image app bar ──────────────────────────────────────────
+                  SliverAppBar(
+                    expandedHeight: 220,
+                    pinned: true,
+                    backgroundColor: AppColors.primary,
+                    forceElevated: innerBoxIsScrolled,
+                    leading: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        margin: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color:
-                              AppColors.popular.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.black.withValues(alpha: 0.35),
+                          shape: BoxShape.circle,
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star,
-                                color: AppColors.popular, size: 14),
-                            const SizedBox(width: 3),
-                            Text(
-                              seller.rating > 0
-                                  ? seller.rating.toStringAsFixed(1)
-                                  : 'New',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
+                        child: const Icon(Icons.arrow_back_ios_new,
+                            color: Colors.white, size: 16),
+                      ),
+                    ),
+                    actions: [
+                      Container(
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            _isFavorited
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color:
+                                _isFavorited ? Colors.red[300] : Colors.white,
+                            size: 18,
+                          ),
+                          onPressed: _toggleFavorite,
+                          constraints:
+                              const BoxConstraints(minWidth: 36, minHeight: 36),
+                          padding: EdgeInsets.zero,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      if (seller.location != null &&
-                          seller.location!.isNotEmpty) ...[
-                        GestureDetector(
-                          onTap: () => _openInMaps(context, seller),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                    ],
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ImageHelper.buildImage(
+                            seller.imageUrl,
+                            fit: BoxFit.cover,
+                            placeholder: _heroBg(),
+                          ),
+                          Container(
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(20),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.55),
+                                ],
+                              ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                          ),
+                          Positioned(
+                            left: 16,
+                            right: 16,
+                            bottom: 16,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.location_on,
-                                    size: 12, color: AppColors.primary),
-                                const SizedBox(width: 4),
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 140),
-                                  child: Text(
-                                    seller.location!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.primary,
-                                    ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: seller.isEffectivelyOpen
+                                        ? AppColors.success
+                                        : AppColors.error,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.access_time,
+                                          color: Colors.white, size: 12),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        seller.openStatusText,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.map_outlined,
-                                    size: 11, color: AppColors.primary),
+                                const SizedBox(height: 6),
+                                Text(
+                                  seller.stallName,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (!seller.isEffectivelyOpen)
-                    Container(
-                      margin: const EdgeInsets.only(top: 10),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: AppColors.warning.withValues(alpha: 0.3)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.info_outline,
-                              color: AppColors.warning, size: 16),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'This stall is currently closed. You can still browse the menu.',
-                              style: TextStyle(
-                                  fontSize: 12, color: AppColors.warning),
-                            ),
-                          ),
                         ],
                       ),
                     ),
-                  if (seller.operatingHours != null) ...[
-                    const SizedBox(height: 12),
-                    _OperatingHoursSection(seller: seller),
+                  ),
+
+                  // ── Stall info card ─────────────────────────────────────────────
+                  SliverToBoxAdapter(
+                    child: Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            seller.description.isNotEmpty
+                                ? seller.description
+                                : 'Authentic ${seller.cuisineType} cuisine.',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.popular.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.star,
+                                        color: AppColors.popular, size: 14),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      seller.rating > 0
+                                          ? seller.rating.toStringAsFixed(1)
+                                          : 'New',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              if (seller.location != null &&
+                                  seller.location!.isNotEmpty) ...[
+                                GestureDetector(
+                                  onTap: () => _openInMaps(context, seller),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.location_on,
+                                            size: 12, color: AppColors.primary),
+                                        const SizedBox(width: 4),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 140),
+                                          child: Text(
+                                            seller.location!,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        const Icon(Icons.map_outlined,
+                                            size: 11, color: AppColors.primary),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (!seller.isEffectivelyOpen)
+                            Container(
+                              margin: const EdgeInsets.only(top: 10),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.warning.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: AppColors.warning
+                                        .withValues(alpha: 0.3)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      color: AppColors.warning, size: 16),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'This stall is currently closed. You can still browse the menu.',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.warning),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (seller.operatingHours != null) ...[
+                            const SizedBox(height: 12),
+                            _OperatingHoursSection(seller: seller),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // ── Pinned tab bar ──────────────────────────────────────────────
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _TabBarDelegate(
+                      TabBar(
+                        controller: _tabController,
+                        labelColor: AppColors.primary,
+                        unselectedLabelColor: AppColors.textSecondary,
+                        indicatorColor: AppColors.primary,
+                        indicatorWeight: 2.5,
+                        labelStyle: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
+                        unselectedLabelStyle: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w500),
+                        tabs: const [
+                          Tab(text: 'Menu'),
+                          Tab(text: 'Reviews'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                body: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _MenuTab(seller: seller, db: _db),
+                    _ReviewsTab(seller: seller, db: _db),
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-
-          // ── Pinned tab bar ──────────────────────────────────────────────
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabBarDelegate(
-              TabBar(
-                controller: _tabController,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.primary,
-                indicatorWeight: 2.5,
-                labelStyle: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w600),
-                unselectedLabelStyle: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w500),
-                tabs: const [
-                  Tab(text: 'Menu'),
-                  Tab(text: 'Reviews'),
-                ],
-              ),
-            ),
-          ),
-        ],
-
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _MenuTab(seller: seller, db: _db),
-            _ReviewsTab(seller: seller, db: _db),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -368,8 +381,7 @@ class _StallMenuScreenState extends State<StallMenuScreen>
   Widget _heroBg() => Container(
         color: AppColors.primary,
         child: const Center(
-          child:
-              Icon(Icons.storefront, size: 80, color: Colors.white24),
+          child: Icon(Icons.storefront, size: 80, color: Colors.white24),
         ),
       );
 }
@@ -410,8 +422,7 @@ class _MenuTab extends StatefulWidget {
   State<_MenuTab> createState() => _MenuTabState();
 }
 
-class _MenuTabState extends State<_MenuTab>
-    with AutomaticKeepAliveClientMixin {
+class _MenuTabState extends State<_MenuTab> with AutomaticKeepAliveClientMixin {
   String _selectedCategory = 'All';
 
   @override
@@ -425,115 +436,143 @@ class _MenuTabState extends State<_MenuTab>
       builder: (context, snap) {
         var items = snap.data ?? [];
         if (_selectedCategory != 'All') {
-          items =
-              items.where((i) => i.category == _selectedCategory).toList();
+          items = items.where((i) => i.category == _selectedCategory).toList();
         }
 
-        return CustomScrollView(
-          key: const PageStorageKey('menu_tab'),
-          slivers: [
-            // Category filter pills
-            SliverToBoxAdapter(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 12, 0, 12),
-                child: SizedBox(
-                  height: 36,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: AppConstants.menuCategories.length,
-                    itemBuilder: (_, i) {
-                      final cat = AppConstants.menuCategories[i];
-                      final selected = cat == _selectedCategory;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: GestureDetector(
-                          onTap: () =>
-                              setState(() => _selectedCategory = cat),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? AppColors.primary
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.border,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 900;
+            return CustomScrollView(
+              key: const PageStorageKey('menu_tab'),
+              slivers: [
+                // Category filter pills
+                SliverToBoxAdapter(
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 0, 12),
+                    child: SizedBox(
+                      height: 36,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: AppConstants.menuCategories.length,
+                        itemBuilder: (_, i) {
+                          final cat = AppConstants.menuCategories[i];
+                          final selected = cat == _selectedCategory;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: GestureDetector(
+                              onTap: () =>
+                                  setState(() => _selectedCategory = cat),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? AppColors.primary
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : AppColors.border,
+                                  ),
+                                ),
+                                child: Text(
+                                  cat,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: selected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
                               ),
                             ),
-                            child: Text(
-                              cat,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: selected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                color: selected
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 4)),
-
-            if (snap.connectionState == ConnectionState.waiting)
-              const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary),
-                ),
-              )
-            else if (items.isEmpty)
-              SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.fastfood_outlined,
-                          size: 48, color: AppColors.textHint),
-                      const SizedBox(height: 12),
-                      Text(
-                        _selectedCategory == 'All'
-                            ? 'No menu items yet'
-                            : 'No items in "$_selectedCategory"',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (_, i) => _MenuItemTile(
-                    item: items[i],
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      '/customer/item',
-                      arguments: items[i].copyWith(
-                        stallName: widget.seller.stallName,
+                          );
+                        },
                       ),
                     ),
                   ),
-                  childCount: items.length,
                 ),
-              ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ],
+                const SliverToBoxAdapter(child: SizedBox(height: 4)),
+
+                if (snap.connectionState == ConnectionState.waiting)
+                  const SliverFillRemaining(
+                    child: Center(
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  )
+                else if (items.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.fastfood_outlined,
+                              size: 48, color: AppColors.textHint),
+                          const SizedBox(height: 12),
+                          Text(
+                            _selectedCategory == 'All'
+                                ? 'No menu items yet'
+                                : 'No items in "$_selectedCategory"',
+                            style:
+                                const TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (isWide)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    sliver: SliverGrid(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) => _MenuItemTile(
+                          item: items[i],
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/customer/item',
+                            arguments: items[i].copyWith(
+                              stallName: widget.seller.stallName,
+                            ),
+                          ),
+                        ),
+                        childCount: items.length,
+                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 560,
+                        mainAxisExtent: 128,
+                      ),
+                    ),
+                  )
+                else
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) => _MenuItemTile(
+                        item: items[i],
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/customer/item',
+                          arguments: items[i].copyWith(
+                            stallName: widget.seller.stallName,
+                          ),
+                        ),
+                      ),
+                      childCount: items.length,
+                    ),
+                  ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              ],
+            );
+          },
         );
       },
     );
@@ -550,7 +589,7 @@ class _ReviewsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<OrderModel>>(
+    return StreamBuilder<List<ReviewModel>>(
       stream: db.sellerReviewsStream(seller.uid),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -580,19 +619,18 @@ class _ReviewsTab extends StatelessWidget {
                 SizedBox(height: 4),
                 Text(
                   'Be the first to leave a review!',
-                  style:
-                      TextStyle(fontSize: 13, color: AppColors.textHint),
+                  style: TextStyle(fontSize: 13, color: AppColors.textHint),
                 ),
               ],
             ),
           );
         }
 
-        final avg =
-            reviews.fold(0.0, (sum, r) => sum + r.rating!) / reviews.length;
+        final avg = reviews.fold(0.0, (sum, review) => sum + review.rating) /
+            reviews.length;
         final ratingCounts = List.generate(5, (i) {
           final star = 5 - i;
-          return reviews.where((r) => r.rating == star).length;
+          return reviews.where((review) => review.rating == star).length;
         });
 
         return CustomScrollView(
@@ -633,9 +671,7 @@ class _ReviewsTab extends StatelessWidget {
                           children: List.generate(
                             5,
                             (i) => Icon(
-                              i < avg.round()
-                                  ? Icons.star
-                                  : Icons.star_border,
+                              i < avg.round() ? Icons.star : Icons.star_border,
                               size: 16,
                               color: AppColors.popular,
                             ),
@@ -660,8 +696,7 @@ class _ReviewsTab extends StatelessWidget {
                           final count = ratingCounts[i];
                           final frac = count / reviews.length;
                           return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 3),
+                            padding: const EdgeInsets.symmetric(vertical: 3),
                             child: Row(
                               children: [
                                 Text(
@@ -682,9 +717,8 @@ class _ReviewsTab extends StatelessWidget {
                                       value: frac,
                                       minHeight: 6,
                                       backgroundColor: AppColors.border,
-                                      valueColor:
-                                          const AlwaysStoppedAnimation(
-                                              AppColors.popular),
+                                      valueColor: const AlwaysStoppedAnimation(
+                                          AppColors.popular),
                                     ),
                                   ),
                                 ),
@@ -734,8 +768,7 @@ class _OperatingHoursSection extends StatefulWidget {
   const _OperatingHoursSection({required this.seller});
 
   @override
-  State<_OperatingHoursSection> createState() =>
-      _OperatingHoursSectionState();
+  State<_OperatingHoursSection> createState() => _OperatingHoursSectionState();
 }
 
 class _OperatingHoursSectionState extends State<_OperatingHoursSection> {
@@ -788,8 +821,7 @@ class _OperatingHoursSectionState extends State<_OperatingHoursSection> {
                 final isOpen = day?['isOpen'] as bool? ?? false;
                 final isToday = i == todayIndex;
                 final from = isOpen
-                    ? SellerModel.formatDisplayTime(
-                        day?['openFrom'] ?? '08:00')
+                    ? SellerModel.formatDisplayTime(day?['openFrom'] ?? '08:00')
                     : null;
                 final until = isOpen
                     ? SellerModel.formatDisplayTime(
@@ -816,9 +848,8 @@ class _OperatingHoursSectionState extends State<_OperatingHoursSection> {
                           label,
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight: isToday
-                                ? FontWeight.w700
-                                : FontWeight.normal,
+                            fontWeight:
+                                isToday ? FontWeight.w700 : FontWeight.normal,
                             color: isToday
                                 ? AppColors.primary
                                 : AppColors.textPrimary,
@@ -829,9 +860,8 @@ class _OperatingHoursSectionState extends State<_OperatingHoursSection> {
                         isOpen ? '$from – $until' : 'Closed',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: isToday
-                              ? FontWeight.w600
-                              : FontWeight.normal,
+                          fontWeight:
+                              isToday ? FontWeight.w600 : FontWeight.normal,
                           color: isToday && isOpen
                               ? AppColors.primary
                               : isOpen
@@ -871,9 +901,8 @@ class _OperatingHoursSectionState extends State<_OperatingHoursSection> {
               }),
             ),
           ),
-          crossFadeState: _expanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
+          crossFadeState:
+              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 200),
         ),
       ],
@@ -884,12 +913,14 @@ class _OperatingHoursSectionState extends State<_OperatingHoursSection> {
 // ─── Review Card ──────────────────────────────────────────────────────────────
 
 class _ReviewCard extends StatelessWidget {
-  final OrderModel review;
+  final ReviewModel review;
   const _ReviewCard({required this.review});
 
   @override
   Widget build(BuildContext context) {
-    final firstName = review.customerName.split(' ').first;
+    final customerName = review.customerName.trim();
+    final firstName =
+        customerName.isEmpty ? 'Customer' : customerName.split(' ').first;
     final date = DateFormat('d MMM yyyy').format(review.createdAt);
 
     return Container(
@@ -913,8 +944,7 @@ class _ReviewCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor:
-                    AppColors.primary.withValues(alpha: 0.15),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                 child: Text(
                   firstName[0].toUpperCase(),
                   style: const TextStyle(
@@ -943,11 +973,9 @@ class _ReviewCard extends StatelessWidget {
                         ...List.generate(
                           5,
                           (i) => Icon(
-                            i < review.rating!
-                                ? Icons.star
-                                : Icons.star_border,
+                            i < review.rating ? Icons.star : Icons.star_border,
                             size: 13,
-                            color: i < review.rating!
+                            color: i < review.rating
                                 ? AppColors.popular
                                 : AppColors.border,
                           ),
@@ -968,14 +996,24 @@ class _ReviewCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            review.comment!,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-              height: 1.5,
+          if (review.comment?.trim().isNotEmpty == true)
+            Text(
+              review.comment!,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            )
+          else
+            const Text(
+              'Rating only',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textHint,
+                fontStyle: FontStyle.italic,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -1107,8 +1145,8 @@ class _MenuItemTile extends StatelessWidget {
   Widget _imgPlaceholder() => Container(
         color: AppColors.primary.withValues(alpha: 0.08),
         child: const Center(
-          child: Icon(Icons.fastfood_outlined,
-              color: AppColors.primary, size: 28),
+          child:
+              Icon(Icons.fastfood_outlined, color: AppColors.primary, size: 28),
         ),
       );
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -20,9 +21,26 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _db = DatabaseService();
+  final _scrollController = ScrollController();
+  late final Stream<List<MenuItemModel>> _menuItemsStream =
+      _db.allMenuItemsStream();
+  late final Stream<List<SellerModel>> _sellersStream = _db.sellersStream();
   String _selectedCuisine = 'All';
 
-  static const _cuisines = ['All', 'Malay', 'Chinese', 'Indian', 'Western', 'Japanese'];
+  static const _cuisines = [
+    'All',
+    'Malay',
+    'Chinese',
+    'Indian',
+    'Western',
+    'Japanese'
+  ];
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   String _greeting() {
     final h = DateTime.now().hour;
@@ -44,361 +62,439 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final userName = auth.customer?.name ?? auth.seller?.stallName ?? 'User';
+    final isWide = MediaQuery.sizeOf(context).width >= 900;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Header
-            SliverToBoxAdapter(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.primary, AppColors.primaryDark],
-                  ),
-                ),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+        child: ScrollConfiguration(
+          behavior: const MaterialScrollBehavior().copyWith(
+            dragDevices: {
+              PointerDeviceKind.touch,
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.trackpad,
+            },
+          ),
+          child: Scrollbar(
+            controller: _scrollController,
+            thumbVisibility: isWide,
+            interactive: isWide,
+            child: CustomScrollView(
+              controller: _scrollController,
+              primary: false,
+              physics: const ClampingScrollPhysics(),
+              slivers: [
+                // Header
+                SliverToBoxAdapter(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.primary, AppColors.primaryDark],
+                      ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _greeting(),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _greeting(),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    userName,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                userName,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                            ),
+                            GestureDetector(
+                              onTap: () => _showNotifications(
+                                  context, auth.currentUserId),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.notifications_outlined,
                                   color: Colors.white,
+                                  size: 22,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 16),
+                        // Search bar
                         GestureDetector(
-                          onTap: () => _showNotifications(context, auth.currentUserId),
+                          onTap: () => widget.onSwitchToSearch?.call(),
                           child: Container(
-                            width: 40,
-                            height: 40,
+                            height: 46,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.white,
-                              size: 22,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.search,
+                                    color: AppColors.textHint, size: 20),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Search restaurants or food...',
+                                  style: TextStyle(
+                                    color: AppColors.textHint,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    // Search bar
-                    GestureDetector(
-                      onTap: () => widget.onSwitchToSearch?.call(),
-                      child: Container(
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.search,
-                                color: AppColors.textHint, size: 20),
-                            SizedBox(width: 10),
-                            Text(
-                              'Search restaurants or food...',
-                              style: TextStyle(
-                                color: AppColors.textHint,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Cuisine filter pills
-            SliverToBoxAdapter(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: _cuisines.map((c) {
-                      final selected = c == _selectedCuisine;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: GestureDetector(
-                          onTap: () =>
-                              setState(() => _selectedCuisine = c),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 7),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? AppColors.primary
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.border,
-                              ),
-                            ),
-                            child: Text(
-                              c,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: selected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                color: selected
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
                   ),
                 ),
-              ),
-            ),
 
-            // My Favourites (only shown when the customer has saved stalls)
-            SliverToBoxAdapter(
-              child: StreamBuilder<List<String>>(
-                stream: _db.favouriteStallIdsStream(auth.currentUserId),
-                builder: (context, favSnap) {
-                  final favIds = favSnap.data ?? [];
-                  if (favIds.isEmpty) return const SizedBox.shrink();
-                  return StreamBuilder<List<SellerModel>>(
-                    stream: _db.sellersStream(),
-                    builder: (context, sellerSnap) {
-                      final favSellers = (sellerSnap.data ?? [])
-                          .where((s) => favIds.contains(s.uid))
-                          .toList();
-                      if (favSellers.isEmpty) return const SizedBox.shrink();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
-                            child: Text(
-                              'My Favourites',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 116,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: favSellers.length,
-                              itemBuilder: (context, i) => _FavouriteStallCard(
-                                seller: favSellers[i],
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  '/customer/menu',
-                                  arguments: favSellers[i],
+                // Cuisine filter pills
+                SliverToBoxAdapter(
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: _cuisines.map((c) {
+                          final selected = c == _selectedCuisine;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _selectedCuisine = c),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? AppColors.primary
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : AppColors.border,
+                                  ),
+                                ),
+                                child: Text(
+                                  c,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: selected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.textSecondary,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // My Favourites (only shown when the customer has saved stalls)
+                SliverToBoxAdapter(
+                  child: StreamBuilder<List<String>>(
+                    stream: _db.favouriteStallIdsStream(auth.currentUserId),
+                    builder: (context, favSnap) {
+                      final favIds = favSnap.data ?? [];
+                      if (favIds.isEmpty) return const SizedBox.shrink();
+                      return StreamBuilder<List<SellerModel>>(
+                        stream: _sellersStream,
+                        builder: (context, sellerSnap) {
+                          final favSellers = (sellerSnap.data ?? [])
+                              .where((s) => favIds.contains(s.uid))
+                              .toList();
+                          if (favSellers.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+                                child: Text(
+                                  'My Favourites',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(
+                                height: 116,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  itemCount: favSellers.length,
+                                  itemBuilder: (context, i) =>
+                                      _FavouriteStallCard(
+                                    seller: favSellers[i],
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      '/customer/menu',
+                                      arguments: favSellers[i],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                            ],
+                          );
+                        },
                       );
                     },
-                  );
-                },
-              ),
-            ),
-
-            // Popular Right Now
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Popular Right Now',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => widget.onSwitchToSearch?.call(),
-                      style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                      child: const Text(
-                        'See all ›',
-                        style: TextStyle(
-                            color: AppColors.primary, fontSize: 13),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-            SliverToBoxAdapter(
-              child: StreamBuilder<List<MenuItemModel>>(
-                stream: _db.allMenuItemsStream(),
-                builder: (context, snap) {
-                  final all = snap.data ?? [];
-                  final popular = all
-                      .where((i) => i.isAvailable)
-                      .take(6)
-                      .toList();
-                  if (popular.isEmpty) {
-                    return const SizedBox(height: 120);
-                  }
-                  return SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: popular.length,
-                      itemBuilder: (context, i) {
-                        final item = popular[i];
-                        return _PopularItemCard(
-                          item: item,
-                          onTap: () => Navigator.pushNamed(
-                            context,
-                            '/customer/item',
-                            arguments: item,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // All Restaurants
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: StreamBuilder<List<SellerModel>>(
-                  stream: _db.sellersStream(),
-                  builder: (context, snap) {
-                    final count = snap.data?.length ?? 0;
-                    return Row(
+                // Popular Right Now
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'All Restaurants',
+                          'Popular Right Now',
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        Text(
-                          '$count places',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
+                        TextButton(
+                          onPressed: () => widget.onSwitchToSearch?.call(),
+                          style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                          child: const Text(
+                            'See all ›',
+                            style: TextStyle(
+                                color: AppColors.primary, fontSize: 13),
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+
+                SliverLayoutBuilder(
+                  builder: (context, constraints) {
+                    final useGrid = constraints.crossAxisExtent >= 760;
+                    return StreamBuilder<List<MenuItemModel>>(
+                      stream: _menuItemsStream,
+                      builder: (context, snap) {
+                        final popular = (snap.data ?? [])
+                            .where((item) => item.isAvailable)
+                            .take(6)
+                            .toList();
+                        if (popular.isEmpty) {
+                          return const SliverToBoxAdapter(
+                            child: SizedBox(height: 120),
+                          );
+                        }
+
+                        Widget buildCard(MenuItemModel item) =>
+                            _PopularItemCard(
+                              item: item,
+                              gridCard: useGrid,
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                '/customer/item',
+                                arguments: item,
+                              ),
+                            );
+
+                        if (useGrid) {
+                          return SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 220,
+                                mainAxisExtent: 210,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) => buildCard(popular[index]),
+                                childCount: popular.length,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: 200,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: popular.length,
+                              itemBuilder: (context, index) =>
+                                  buildCard(popular[index]),
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
-              ),
-            ),
 
-            StreamBuilder<List<SellerModel>>(
-              stream: _db.sellersStream(),
-              builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: CircularProgressIndicator(
-                            color: AppColors.primary),
-                      ),
+                // All Restaurants
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: StreamBuilder<List<SellerModel>>(
+                      stream: _sellersStream,
+                      builder: (context, snap) {
+                        final count = snap.data?.length ?? 0;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'All Restaurants',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              '$count places',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                  );
-                }
-                var sellers = snap.data ?? [];
-                if (_selectedCuisine != 'All') {
-                  sellers = sellers
-                      .where((s) => s.cuisineType == _selectedCuisine)
-                      .toList();
-                }
-                if (sellers.isEmpty) {
-                  return const SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text(
-                          'No restaurants found',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      final seller = sellers[i];
-                      return _RestaurantCard(
-                        seller: seller,
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          '/customer/menu',
-                          arguments: seller,
-                        ),
-                      );
-                    },
-                    childCount: sellers.length,
                   ),
-                );
-              },
-            ),
+                ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-          ],
+                SliverLayoutBuilder(
+                  builder: (context, constraints) {
+                    final useGrid = constraints.crossAxisExtent >= 760;
+                    return StreamBuilder<List<SellerModel>>(
+                      stream: _sellersStream,
+                      builder: (context, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const SliverToBoxAdapter(
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(32),
+                                child: CircularProgressIndicator(
+                                    color: AppColors.primary),
+                              ),
+                            ),
+                          );
+                        }
+                        var sellers = snap.data ?? [];
+                        if (_selectedCuisine != 'All') {
+                          sellers = sellers
+                              .where((seller) =>
+                                  seller.cuisineType == _selectedCuisine)
+                              .toList();
+                        }
+                        if (sellers.isEmpty) {
+                          return const SliverToBoxAdapter(
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(32),
+                                child: Text(
+                                  'No restaurants found',
+                                  style:
+                                      TextStyle(color: AppColors.textSecondary),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        Widget buildCard(SellerModel seller) => _RestaurantCard(
+                              seller: seller,
+                              gridCard: useGrid,
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                '/customer/menu',
+                                arguments: seller,
+                              ),
+                            );
+
+                        if (useGrid) {
+                          return SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 440,
+                                mainAxisExtent: 270,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) => buildCard(sellers[index]),
+                                childCount: sellers.length,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => buildCard(sellers[index]),
+                            childCount: sellers.length,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -408,16 +504,21 @@ class _HomeScreenState extends State<HomeScreen> {
 class _PopularItemCard extends StatelessWidget {
   final MenuItemModel item;
   final VoidCallback onTap;
+  final bool gridCard;
 
-  const _PopularItemCard({required this.item, required this.onTap});
+  const _PopularItemCard({
+    required this.item,
+    required this.onTap,
+    this.gridCard = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 150,
-        margin: const EdgeInsets.only(right: 12),
+        width: gridCard ? null : 150,
+        margin: gridCard ? EdgeInsets.zero : const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -440,10 +541,10 @@ class _PopularItemCard extends StatelessWidget {
                 height: 110,
                 width: double.infinity,
                 child: ImageHelper.buildImage(
-                    item.imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: _placeholder(),
-                  ),
+                  item.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: _placeholder(),
+                ),
               ),
             ),
             Padding(
@@ -483,8 +584,8 @@ class _PopularItemCard extends StatelessWidget {
     return Container(
       color: AppColors.primary.withValues(alpha: 0.08),
       child: const Center(
-        child: Icon(Icons.fastfood_outlined,
-            color: AppColors.primary, size: 32),
+        child:
+            Icon(Icons.fastfood_outlined, color: AppColors.primary, size: 32),
       ),
     );
   }
@@ -493,15 +594,22 @@ class _PopularItemCard extends StatelessWidget {
 class _RestaurantCard extends StatelessWidget {
   final SellerModel seller;
   final VoidCallback onTap;
+  final bool gridCard;
 
-  const _RestaurantCard({required this.seller, required this.onTap});
+  const _RestaurantCard({
+    required this.seller,
+    required this.onTap,
+    this.gridCard = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+        margin: gridCard
+            ? EdgeInsets.zero
+            : const EdgeInsets.fromLTRB(16, 0, 16, 14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -637,8 +745,7 @@ class _RestaurantCard extends StatelessWidget {
                       Text(
                         seller.cuisineType,
                         style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary),
+                            fontSize: 12, color: AppColors.textSecondary),
                       ),
                       if (seller.location != null &&
                           seller.location!.isNotEmpty) ...[
@@ -656,8 +763,7 @@ class _RestaurantCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary),
+                                fontSize: 12, color: AppColors.textSecondary),
                           ),
                         ),
                       ],
@@ -719,15 +825,16 @@ class _FavouriteStallCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(14)),
               child: SizedBox(
                 height: 68,
                 width: double.infinity,
                 child: ImageHelper.buildImage(
-                    seller.imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: _placeholder(),
-                  ),
+                  seller.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: _placeholder(),
+                ),
               ),
             ),
             Padding(
@@ -752,7 +859,9 @@ class _FavouriteStallCard extends StatelessWidget {
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: seller.isEffectivelyOpen ? AppColors.success : AppColors.error,
+                          color: seller.isEffectivelyOpen
+                              ? AppColors.success
+                              : AppColors.error,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -761,7 +870,9 @@ class _FavouriteStallCard extends StatelessWidget {
                         seller.isEffectivelyOpen ? 'Open' : 'Closed',
                         style: TextStyle(
                           fontSize: 10,
-                          color: seller.isEffectivelyOpen ? AppColors.success : AppColors.error,
+                          color: seller.isEffectivelyOpen
+                              ? AppColors.success
+                              : AppColors.error,
                         ),
                       ),
                     ],
@@ -778,7 +889,8 @@ class _FavouriteStallCard extends StatelessWidget {
   Widget _placeholder() => Container(
         color: AppColors.primary.withValues(alpha: 0.08),
         child: const Center(
-          child: Icon(Icons.storefront_outlined, color: AppColors.primary, size: 26),
+          child: Icon(Icons.storefront_outlined,
+              color: AppColors.primary, size: 26),
         ),
       );
 }
@@ -842,8 +954,7 @@ class _NotificationsSheet extends StatelessWidget {
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                        color: AppColors.primary),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   );
                 }
 
@@ -892,8 +1003,7 @@ class _NotificationTile extends StatelessWidget {
     final time = DateFormat('d MMM, h:mm a').format(order.createdAt);
 
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       leading: Container(
         width: 42,
         height: 42,
@@ -917,13 +1027,12 @@ class _NotificationTile extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             '${order.stallName} • Order #${order.id.replaceAll('-', '').substring(0, 6).toUpperCase()}',
-            style: const TextStyle(
-                fontSize: 12, color: AppColors.textSecondary),
+            style:
+                const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           Text(
             time,
-            style: const TextStyle(
-                fontSize: 11, color: AppColors.textHint),
+            style: const TextStyle(fontSize: 11, color: AppColors.textHint),
           ),
         ],
       ),
@@ -933,23 +1042,37 @@ class _NotificationTile extends StatelessWidget {
   (Color, IconData, String) _statusInfo(String status) {
     switch (status) {
       case AppConstants.statusPending:
-        return (AppColors.statusPending, Icons.hourglass_top_outlined,
-            'Order received — waiting for confirmation');
+        return (
+          AppColors.statusPending,
+          Icons.hourglass_top_outlined,
+          'Order received — waiting for confirmation'
+        );
       case AppConstants.statusConfirmed:
-        return (AppColors.info, Icons.check_circle_outline,
-            'Order confirmed by stall');
+        return (
+          AppColors.info,
+          Icons.check_circle_outline,
+          'Order confirmed by stall'
+        );
       case AppConstants.statusPreparing:
-        return (AppColors.statusPreparing, Icons.soup_kitchen_outlined,
-            'Your order is being prepared');
+        return (
+          AppColors.statusPreparing,
+          Icons.soup_kitchen_outlined,
+          'Your order is being prepared'
+        );
       case AppConstants.statusReady:
-        return (AppColors.statusReady, Icons.done_all,
-            'Order ready — please collect!');
+        return (
+          AppColors.statusReady,
+          Icons.done_all,
+          'Order ready — please collect!'
+        );
       case AppConstants.statusCompleted:
-        return (AppColors.success, Icons.check_circle,
-            'Order completed. Enjoy your meal!');
+        return (
+          AppColors.success,
+          Icons.check_circle,
+          'Order completed. Enjoy your meal!'
+        );
       default:
-        return (AppColors.error, Icons.cancel_outlined,
-            'Order was cancelled');
+        return (AppColors.error, Icons.cancel_outlined, 'Order was cancelled');
     }
   }
 }

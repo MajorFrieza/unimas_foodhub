@@ -16,7 +16,13 @@
       ".read": "auth != null",
       "$sellerId": {
         ".write": "auth != null && auth.uid == $sellerId && newData.exists()",
-        ".validate": "newData.hasChildren(['stallName', 'ownerName', 'email', 'phone', 'description', 'isOpen', 'cuisineType', 'rating', 'createdAt', 'role']) && newData.child('role').val() == 'seller' && newData.child('stallName').isString() && newData.child('ownerName').isString() && newData.child('email').isString() && newData.child('phone').isString() && newData.child('description').isString() && newData.child('isOpen').isBoolean() && newData.child('cuisineType').isString() && newData.child('rating').isNumber() && newData.child('rating').val() >= 0 && newData.child('rating').val() <= 5 && newData.child('createdAt').isNumber()"
+        ".validate": "newData.hasChildren(['stallName', 'ownerName', 'email', 'phone', 'description', 'isOpen', 'cuisineType', 'rating', 'createdAt', 'role']) && newData.child('role').val() == 'seller' && newData.child('stallName').isString() && newData.child('ownerName').isString() && newData.child('email').isString() && newData.child('phone').isString() && newData.child('description').isString() && newData.child('isOpen').isBoolean() && newData.child('cuisineType').isString() && newData.child('rating').isNumber() && newData.child('rating').val() >= 0 && newData.child('rating').val() <= 5 && newData.child('createdAt').isNumber()",
+        "reviews": {
+          "$orderId": {
+            ".write": "auth != null && !data.exists() && root.child('orders').child($orderId).child('customerId').val() == auth.uid && root.child('orders').child($orderId).child('sellerId').val() == $sellerId && root.child('orders').child($orderId).child('status').val() == 'completed'",
+            ".validate": "newData.hasChildren(['customerName', 'rating', 'createdAt']) && newData.child('customerName').isString() && newData.child('rating').isNumber() && newData.child('rating').val() >= 1 && newData.child('rating').val() <= 5 && newData.child('createdAt').isNumber() && (!newData.child('comment').exists() || (newData.child('comment').isString() && newData.child('comment').val().length <= 200))"
+          }
+        }
       }
     },
     "menuItems": {

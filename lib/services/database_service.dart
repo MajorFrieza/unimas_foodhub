@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
+import '../models/review_model.dart';
 import '../models/seller_model.dart';
 import '../models/menu_item_model.dart';
 import '../models/order_model.dart';
@@ -184,12 +185,73 @@ class DatabaseService {
           .map((entry) => OrderModel.fromMap(
               entry.key.toString(), entry.value as Map<dynamic, dynamic>))
           .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        ..sort((a, b) {
+          int priority(OrderModel order) {
+            if (order.status == AppConstants.statusPending) return 0;
+            if (order.status == AppConstants.statusCompleted ||
+                order.status == AppConstants.statusCancelled) {
+              return 2;
+            }
+            return 1;
+          }
+
+          final statusOrder = priority(a).compareTo(priority(b));
+          if (statusOrder != 0) return statusOrder;
+          final dateOrder = b.createdAt.compareTo(a.createdAt);
+          return dateOrder != 0 ? dateOrder : b.id.compareTo(a.id);
+        });
       if (FirebaseAuth.instance.currentUser?.uid == sellerId) {
         unawaited(_syncSellerRating(sellerId, orders));
+        unawaited(_syncSellerReviews(sellerId, orders));
       }
       return orders;
     });
+  }
+
+  Future<void> _syncSellerReviews(
+      String sellerId, List<OrderModel> orders) async {
+    final ratedOrders = orders.where((order) => order.rating != null);
+    if (ratedOrders.isEmpty) return;
+
+    try {
+      final reviewsRef =
+          _db.ref('${AppConstants.sellersPath}/$sellerId/reviews');
+      final snapshot = await reviewsRef.get();
+      final existing = snapshot.value as Map<dynamic, dynamic>? ?? {};
+      final missing = <String, dynamic>{};
+      for (final order in ratedOrders) {
+        if (existing.containsKey(order.id)) continue;
+        missing[order.id] = _reviewFromOrder(order).toMap();
+      }
+      if (missing.isNotEmpty) {
+        await reviewsRef.update(missing);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Could not sync seller reviews: $error\n$stackTrace');
+    }
+  }
+
+  ReviewModel _reviewFromOrder(
+    OrderModel order, {
+    int? rating,
+    String? comment,
+  }) {
+    final nameParts = order.customerName.trim().split(RegExp(r'\s+'));
+    final firstName = nameParts.firstWhere((name) => name.isNotEmpty,
+        orElse: () => 'Customer');
+    final orderRating = rating ?? order.rating;
+    if (orderRating == null) {
+      throw StateError('Cannot publish a review without a rating');
+    }
+    final reviewComment = (comment ?? order.comment)?.trim();
+    return ReviewModel(
+      id: order.id,
+      customerName: firstName,
+      rating: orderRating,
+      comment:
+          reviewComment == null || reviewComment.isEmpty ? null : reviewComment,
+      createdAt: order.createdAt,
+    );
   }
 
   Future<void> _syncSellerRating(
@@ -210,22 +272,32 @@ class DatabaseService {
     }
   }
 
-  /// Returns orders for a seller that have both a rating and a comment.
-  Stream<List<OrderModel>> sellerReviewsStream(String sellerId) {
-    return sellerOrdersStream(sellerId).map((orders) => orders
-        .where((o) =>
-            o.rating != null &&
-            o.comment != null &&
-            o.comment!.trim().isNotEmpty)
-        .toList());
+  /// Returns public reviews for a seller, including ratings without comments.
+  Stream<List<ReviewModel>> sellerReviewsStream(String sellerId) {
+    return _db
+        .ref('${AppConstants.sellersPath}/$sellerId/reviews')
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) return [];
+      final map = event.snapshot.value as Map<dynamic, dynamic>;
+      final reviews = map.entries
+          .map((entry) => ReviewModel.fromMap(
+              entry.key.toString(), entry.value as Map<dynamic, dynamic>))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return reviews;
+    });
   }
 
   Future<void> updateOrderStatus(String orderId, String status) async {
     await _db.ref('${AppConstants.ordersPath}/$orderId/status').set(status);
   }
 
-  /// Saves a rating and optional comment on a completed order.
-  Future<void> rateOrder(String orderId, int rating, {String? comment}) async {
+  /// Saves an order rating, then publishes it to the seller's public reviews.
+  ///
+  /// Returns false when the order rating is saved but the public review write
+  /// is denied by rules that have not yet been updated.
+  Future<bool> rateOrder(String orderId, int rating, {String? comment}) async {
     if (rating < 1 || rating > 5) {
       throw ArgumentError.value(rating, 'rating', 'Must be between 1 and 5');
     }
@@ -239,10 +311,51 @@ class DatabaseService {
       );
     }
 
-    final updates = <String, dynamic>{'rating': rating};
-    if (trimmedComment != null && trimmedComment.isNotEmpty) {
-      updates['comment'] = trimmedComment;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      throw StateError('You must be signed in to submit a rating');
     }
-    await _db.ref('${AppConstants.ordersPath}/$orderId').update(updates);
+
+    final orderRef = _db.ref('${AppConstants.ordersPath}/$orderId');
+    final orderSnapshot = await orderRef.get();
+    if (!orderSnapshot.exists) {
+      throw StateError('This order could not be found');
+    }
+    final order = OrderModel.fromMap(
+      orderId,
+      orderSnapshot.value as Map<dynamic, dynamic>,
+    );
+    if (order.customerId != userId ||
+        order.status != AppConstants.statusCompleted ||
+        order.rating != null) {
+      throw StateError('This order is not eligible for a new rating');
+    }
+
+    final savedComment = trimmedComment?.isNotEmpty == true
+        ? trimmedComment
+        : order.comment?.trim();
+    final review = _reviewFromOrder(
+      order,
+      rating: rating,
+      comment: savedComment,
+    );
+    final orderUpdates = <String, dynamic>{'rating': rating};
+    if (order.comment == null && trimmedComment?.isNotEmpty == true) {
+      orderUpdates['comment'] = trimmedComment;
+    }
+    await orderRef.update(orderUpdates);
+
+    try {
+      await _db
+          .ref('${AppConstants.sellersPath}/${order.sellerId}/reviews/$orderId')
+          .set(review.toMap());
+      return true;
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Rating saved for order $orderId, but its public stall review could '
+        'not be published: $error\n$stackTrace',
+      );
+      return false;
+    }
   }
 }

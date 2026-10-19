@@ -663,16 +663,21 @@ class _RatingCardState extends State<_RatingCard> {
     if (_selected == 0) return;
     setState(() => _submitting = true);
     try {
-      await widget.db.rateOrder(
+      final reviewPublished = await widget.db.rateOrder(
         widget.order.id,
         _selected,
         comment: _commentController.text,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Thanks for your feedback!'),
-            backgroundColor: AppColors.success,
+          SnackBar(
+            content: Text(
+              reviewPublished
+                  ? 'Thanks for your feedback!'
+                  : 'Your rating was saved. It will appear in the stall reviews after they sync.',
+            ),
+            backgroundColor:
+                reviewPublished ? AppColors.success : AppColors.warning,
           ),
         );
       }

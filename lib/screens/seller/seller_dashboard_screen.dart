@@ -17,8 +17,11 @@ class SellerDashboardScreen extends StatelessWidget {
     final db = DatabaseService();
 
     final hour = DateTime.now().hour;
-    final greeting =
-        hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+    final greeting = hour < 12
+        ? 'Good Morning'
+        : hour < 17
+            ? 'Good Afternoon'
+            : 'Good Evening';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -33,8 +36,8 @@ class SellerDashboardScreen extends StatelessWidget {
                   o.createdAt.month == today.month &&
                   o.createdAt.day == today.day;
             }).toList();
-            final revenue = todayOrders.fold<double>(
-                0, (sum, o) => sum + o.totalAmount);
+            final revenue =
+                todayOrders.fold<double>(0, (sum, o) => sum + o.totalAmount);
             return CustomScrollView(
               slivers: [
                 // Header + Stats (combined with rounded bottom)
@@ -65,7 +68,8 @@ class SellerDashboardScreen extends StatelessWidget {
                                     greeting,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Colors.white.withValues(alpha: 0.8),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.8),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -99,37 +103,43 @@ class SellerDashboardScreen extends StatelessWidget {
                                   o.status != AppConstants.statusCompleted &&
                                   o.status != AppConstants.statusCancelled)
                               .length;
-                          return GridView.count(
-                            crossAxisCount: 2,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1.6,
-                            children: [
-                              _StatCard(
-                                icon: Icons.receipt_long_outlined,
-                                value: '${todayOrders.length}',
-                                label: "Today's Orders",
-                              ),
-                              _StatCard(
-                                icon: Icons.trending_up,
-                                value: 'RM ${revenue.toStringAsFixed(0)}',
-                                label: 'Revenue',
-                              ),
-                              _StatCard(
-                                icon: Icons.pending_actions_outlined,
-                                value: '$activeOrders',
-                                label: 'Active Orders',
-                              ),
-                              _StatCard(
-                                icon: Icons.star_outline,
-                                value: seller?.rating != null && seller!.rating > 0
-                                    ? seller.rating.toStringAsFixed(1)
-                                    : '—',
-                                label: 'Rating',
-                              ),
-                            ],
+                          return LayoutBuilder(
+                            builder: (context, constraints) {
+                              return GridView.count(
+                                crossAxisCount: 2,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio:
+                                    constraints.maxWidth >= 640 ? 4.5 : 1.6,
+                                children: [
+                                  _StatCard(
+                                    icon: Icons.receipt_long_outlined,
+                                    value: '${todayOrders.length}',
+                                    label: "Today's Orders",
+                                  ),
+                                  _StatCard(
+                                    icon: Icons.trending_up,
+                                    value: 'RM ${revenue.toStringAsFixed(0)}',
+                                    label: 'Revenue',
+                                  ),
+                                  _StatCard(
+                                    icon: Icons.pending_actions_outlined,
+                                    value: '$activeOrders',
+                                    label: 'Active Orders',
+                                  ),
+                                  _StatCard(
+                                    icon: Icons.star_outline,
+                                    value: seller?.rating != null &&
+                                            seller!.rating > 0
+                                        ? seller.rating.toStringAsFixed(1)
+                                        : '—',
+                                    label: 'Rating',
+                                  ),
+                                ],
+                              );
+                            },
                           );
                         }),
                       ],
@@ -217,8 +227,7 @@ class SellerDashboardScreen extends StatelessWidget {
                             padding: EdgeInsets.all(24),
                             child: Text(
                               'No orders yet',
-                              style: TextStyle(
-                                  color: AppColors.textSecondary),
+                              style: TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
                         ),
@@ -230,8 +239,7 @@ class SellerDashboardScreen extends StatelessWidget {
                             return _RecentOrderTile(
                               order: order,
                               onUpdateStatus: (status) async {
-                                await db.updateOrderStatus(
-                                    order.id, status);
+                                await db.updateOrderStatus(order.id, status);
                               },
                             );
                           },
@@ -260,8 +268,7 @@ class _OpenToggle extends StatelessWidget {
     return GestureDetector(
       onTap: () => onToggle(!isOpen),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isOpen ? AppColors.success : Colors.white24,
           borderRadius: BorderRadius.circular(20),
@@ -403,8 +410,7 @@ class _RecentOrderTile extends StatelessWidget {
   final OrderModel order;
   final ValueChanged<String> onUpdateStatus;
 
-  const _RecentOrderTile(
-      {required this.order, required this.onUpdateStatus});
+  const _RecentOrderTile({required this.order, required this.onUpdateStatus});
 
   @override
   Widget build(BuildContext context) {
@@ -444,10 +450,7 @@ class _RecentOrderTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  order.items
-                      .map((i) => i.name)
-                      .take(2)
-                      .join(', '),
+                  order.items.map((i) => i.name).take(2).join(', '),
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -477,14 +480,13 @@ class _RecentOrderTile extends StatelessWidget {
                   color: AppColors.primary,
                 ),
               ),
-              if (_nextStatus(order.status) != null)
-                const SizedBox(height: 6),
+              if (_nextStatus(order.status) != null) const SizedBox(height: 6),
               if (_nextStatus(order.status) != null)
                 GestureDetector(
                   onTap: () => _confirmAndUpdate(context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(8),

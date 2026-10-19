@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
+    if (kIsWeb) return;
+
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     await _plugin.initialize(const InitializationSettings(android: android));
 
@@ -18,6 +21,8 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    if (kIsWeb) return;
+
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         'order_updates',

@@ -99,57 +99,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              // Back button
-              IconButton(
-                onPressed: () {
-                  if (_step == 2) {
-                    setState(() => _step = 1);
-                  } else {
-                    Navigator.pop(context);
-                  }
-                },
-                icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(height: 20),
-
-              // Step indicator
-              Row(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _StepDot(active: _step >= 1, done: _step > 1, number: 1),
-                  Expanded(
-                    child: Container(
-                      height: 2,
-                      color: _step > 1 ? AppColors.primary : AppColors.border,
+                  const SizedBox(height: 16),
+                  // Back button
+                  IconButton(
+                    onPressed: () {
+                      if (_step == 2) {
+                        setState(() => _step = 1);
+                      } else {
+                        Navigator.pop(context);
+                      }
+                    },
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Step indicator
+                  Row(
+                    children: [
+                      _StepDot(active: _step >= 1, done: _step > 1, number: 1),
+                      Expanded(
+                        child: Container(
+                          height: 2,
+                          color:
+                              _step > 1 ? AppColors.primary : AppColors.border,
+                        ),
+                      ),
+                      _StepDot(active: _step >= 2, done: false, number: 2),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+
+                  const Text(
+                    'Create Account',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  _StepDot(active: _step >= 2, done: false, number: 2),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Fill in your details to get started',
+                    style:
+                        TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 24),
+
+                  if (_step == 1) _buildStep1() else _buildStep2(isLoading),
                 ],
               ),
-              const SizedBox(height: 28),
-
-              const Text(
-                'Create Account',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Fill in your details to get started',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-
-              if (_step == 1) _buildStep1() else _buildStep2(isLoading),
-            ],
+            ),
           ),
         ),
       ),
@@ -256,12 +263,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const Text(
                 'Already have an account? ',
-                style: TextStyle(
-                    fontSize: 14, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
               GestureDetector(
-                onTap: () =>
-                    Navigator.pushReplacementNamed(context, '/login'),
+                onTap: () => Navigator.pushReplacementNamed(context, '/login'),
                 child: const Text(
                   'Sign In',
                   style: TextStyle(
@@ -387,8 +392,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     )
                   : const Text(
                       'Create Account',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
             ),
           ),
@@ -413,8 +418,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
       filled: true,
       fillColor: const Color(0xFFF8F8F8),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.border),
@@ -506,19 +510,14 @@ class _RoleCard extends StatelessWidget {
           children: [
             Icon(icon,
                 size: 28,
-                color: selected
-                    ? AppColors.primary
-                    : AppColors.textSecondary),
+                color: selected ? AppColors.primary : AppColors.textSecondary),
             const SizedBox(height: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.normal,
-                color: selected
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected ? AppColors.primary : AppColors.textSecondary,
               ),
             ),
           ],

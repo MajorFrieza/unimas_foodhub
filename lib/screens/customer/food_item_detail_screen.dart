@@ -50,11 +50,20 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final item =
-        ModalRoute.of(context)!.settings.arguments as MenuItemModel;
+    final item = ModalRoute.of(context)!.settings.arguments as MenuItemModel;
     final cart = context.watch<CartProvider>();
     final customerId = context.read<AuthProvider>().currentUserId;
     final total = item.price * _quantity;
+
+    if (MediaQuery.sizeOf(context).width >= 1100) {
+      return _buildDesktopLayout(
+        context,
+        item: item,
+        cart: cart,
+        customerId: customerId,
+        total: total,
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -281,8 +290,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      icon: const Icon(Icons.shopping_cart_outlined,
-                          size: 20),
+                      icon: const Icon(Icons.shopping_cart_outlined, size: 20),
                       label: Text(
                         item.isAvailable
                             ? 'Add to Cart'
@@ -304,8 +312,293 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
     );
   }
 
-  void _addToCart(
-      BuildContext context, MenuItemModel item, CartProvider cart) {
+  Widget _buildDesktopLayout(
+    BuildContext context, {
+    required MenuItemModel item,
+    required CartProvider cart,
+    required String customerId,
+    required double total,
+  }) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(
+              height: 64,
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                    tooltip: 'Back',
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => _toggleFavorite(customerId, item.sellerId),
+                    icon: Icon(
+                      _isFavorited ? Icons.favorite : Icons.favorite_border,
+                      color: _isFavorited ? Colors.red[400] : AppColors.primary,
+                    ),
+                    tooltip: _isFavorited
+                        ? 'Remove from favourites'
+                        : 'Add to favourites',
+                  ),
+                  const SizedBox(width: 16),
+                ],
+              ),
+            ),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final height = constraints.maxHeight > 620
+                      ? 620.0
+                      : constraints.maxHeight;
+                  return Center(
+                    child: SizedBox(
+                      height: height,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1200),
+                        child: Container(
+                          margin: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: AspectRatio(
+                                    aspectRatio: 1,
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        ImageHelper.buildImage(
+                                          item.imageUrl,
+                                          fit: BoxFit.cover,
+                                          placeholder: _heroBg(),
+                                        ),
+                                        if (item.isPopular)
+                                          Positioned(
+                                            left: 16,
+                                            bottom: 16,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 5),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.popular,
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: const Text(
+                                                'Popular',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 36),
+                              Expanded(
+                                flex: 5,
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              item.name,
+                                              style: const TextStyle(
+                                                fontSize: 28,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'RM ${item.price.toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        item.description.isNotEmpty
+                                            ? item.description
+                                            : 'A delicious ${item.category.toLowerCase()} dish.',
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          color: AppColors.textSecondary,
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Wrap(
+                                        spacing: 10,
+                                        runSpacing: 8,
+                                        children: [
+                                          _InfoChip(
+                                            icon: Icons.access_time_outlined,
+                                            label: '${item.prepTime} min',
+                                          ),
+                                          if (item.calories > 0)
+                                            _InfoChip(
+                                              icon: Icons
+                                                  .local_fire_department_outlined,
+                                              label: '${item.calories} cal',
+                                            ),
+                                          _InfoChip(
+                                            icon: Icons.category_outlined,
+                                            label: item.category,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 28),
+                                      const Divider(),
+                                      const SizedBox(height: 20),
+                                      Row(
+                                        children: [
+                                          const Text(
+                                            'Quantity',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          _QtyButton(
+                                            icon: Icons.remove,
+                                            onTap: _quantity > 1
+                                                ? () =>
+                                                    setState(() => _quantity--)
+                                                : null,
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 16),
+                                            child: Text(
+                                              '$_quantity',
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                          _QtyButton(
+                                            icon: Icons.add,
+                                            filled: true,
+                                            onTap: () =>
+                                                setState(() => _quantity++),
+                                          ),
+                                          const SizedBox(width: 20),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              const Text(
+                                                'Total',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                              ),
+                                              Text(
+                                                'RM ${total.toStringAsFixed(2)}',
+                                                style: const TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 28),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 52,
+                                        child: ElevatedButton.icon(
+                                          onPressed: item.isAvailable
+                                              ? () => _addToCart(
+                                                  context, item, cart)
+                                              : null,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.primary,
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                          ),
+                                          icon: const Icon(
+                                              Icons.shopping_cart_outlined,
+                                              size: 20),
+                                          label: Text(
+                                            item.isAvailable
+                                                ? 'Add to Cart'
+                                                : 'Currently Unavailable',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addToCart(BuildContext context, MenuItemModel item, CartProvider cart) {
     // Add item _quantity times
     bool added = false;
     for (int i = 0; i < _quantity; i++) {
@@ -366,8 +659,7 @@ class _FoodItemDetailScreenState extends State<FoodItemDetailScreen> {
   Widget _heroBg() => Container(
         color: AppColors.primary,
         child: const Center(
-          child:
-              Icon(Icons.fastfood, size: 80, color: Colors.white24),
+          child: Icon(Icons.fastfood, size: 80, color: Colors.white24),
         ),
       );
 }
@@ -409,8 +701,7 @@ class _QtyButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool filled;
 
-  const _QtyButton(
-      {required this.icon, this.onTap, this.filled = false});
+  const _QtyButton({required this.icon, this.onTap, this.filled = false});
 
   @override
   Widget build(BuildContext context) {
@@ -425,9 +716,7 @@ class _QtyButton extends StatelessWidget {
           border: filled
               ? null
               : Border.all(
-                  color: onTap != null
-                      ? AppColors.primary
-                      : AppColors.border),
+                  color: onTap != null ? AppColors.primary : AppColors.border),
         ),
         child: Icon(
           icon,
