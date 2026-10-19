@@ -171,9 +171,7 @@ class _StepIndicator extends StatelessWidget {
             return Expanded(
               child: Container(
                 height: 2,
-                color: passed
-                    ? AppColors.primary
-                    : AppColors.border,
+                color: passed ? AppColors.primary : AppColors.border,
               ),
             );
           }
@@ -212,8 +210,7 @@ class _StepIndicator extends StatelessWidget {
                 _steps[stepIndex],
                 style: TextStyle(
                   fontSize: 9,
-                  fontWeight:
-                      isCurrent ? FontWeight.w700 : FontWeight.w400,
+                  fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
                   color: isDone || isCurrent
                       ? AppColors.primary
                       : AppColors.textHint,
@@ -248,7 +245,17 @@ class _OrderCard extends StatelessWidget {
       confirmColor: AppColors.primary,
     );
     if (confirmed == true) {
-      await db.updateOrderStatus(order.id, next);
+      try {
+        await db.updateOrderStatus(order.id, next);
+      } catch (e) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not update order status: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -262,7 +269,17 @@ class _OrderCard extends StatelessWidget {
       confirmColor: AppColors.error,
     );
     if (confirmed == true) {
-      await db.updateOrderStatus(order.id, AppConstants.statusCancelled);
+      try {
+        await db.updateOrderStatus(order.id, AppConstants.statusCancelled);
+      } catch (e) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not cancel order: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -486,8 +503,7 @@ class _OrderCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (order.comment != null &&
-                      order.comment!.isNotEmpty) ...[
+                  if (order.comment != null && order.comment!.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Container(
                       width: double.infinity,
@@ -521,8 +537,7 @@ class _OrderCard extends StatelessWidget {
                             side: const BorderSide(color: AppColors.error),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                           child: const Text('Cancel',
                               style: TextStyle(fontSize: 13)),
@@ -539,8 +554,7 @@ class _OrderCard extends StatelessWidget {
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                           child: Text(
                             _nextLabel(order.status)!,

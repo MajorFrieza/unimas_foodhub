@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/image_helper.dart';
 
@@ -65,8 +65,8 @@ class CartScreen extends StatelessWidget {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary
-                                      .withValues(alpha: 0.1),
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(Icons.storefront_outlined,
@@ -74,8 +74,7 @@ class CartScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 12),
                               Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
                                     'Ordering from',
@@ -101,16 +100,14 @@ class CartScreen extends StatelessWidget {
                         // Cart items
                         ...cart.items.map((cartItem) {
                           return Container(
-                            margin:
-                                const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black
-                                      .withValues(alpha: 0.04),
+                                  color: Colors.black.withValues(alpha: 0.04),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -168,9 +165,8 @@ class CartScreen extends StatelessWidget {
                                                   cartItem.menuItem.id),
                                         ),
                                         Padding(
-                                          padding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 10),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10),
                                           child: Text(
                                             '${cartItem.quantity}',
                                             style: const TextStyle(
@@ -211,8 +207,7 @@ class CartScreen extends StatelessWidget {
 
                         // Estimated prep time banner
                         Container(
-                          margin:
-                              const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF8E1),
@@ -224,8 +219,8 @@ class CartScreen extends StatelessWidget {
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: AppColors.popular
-                                      .withValues(alpha: 0.15),
+                                  color:
+                                      AppColors.popular.withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(Icons.access_time,
@@ -233,8 +228,7 @@ class CartScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 12),
                               Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
                                     'Estimated Preparation Time',
@@ -318,11 +312,9 @@ class CartScreen extends StatelessWidget {
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2),
+                                      color: Colors.white, strokeWidth: 2),
                                 )
-                              : const Icon(
-                                  Icons.receipt_long_outlined,
+                              : const Icon(Icons.receipt_long_outlined,
                                   size: 20),
                           label: Text(
                             cart.isPlacingOrder
@@ -366,8 +358,11 @@ class CartScreen extends StatelessWidget {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to place order. Please try again.'),
+        SnackBar(
+          content: Text(
+            cart.errorMessage ??
+                'Failed to place order. Check your connection and try again.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -379,8 +374,7 @@ class CartScreen extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Clear Cart?'),
-        content:
-            const Text('This will remove all items from your cart.'),
+        content: const Text('This will remove all items from your cart.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -391,8 +385,8 @@ class CartScreen extends StatelessWidget {
               cart.clearCart();
               Navigator.pop(context);
             },
-            child: const Text('Clear',
-                style: TextStyle(color: AppColors.error)),
+            child:
+                const Text('Clear', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -402,8 +396,8 @@ class CartScreen extends StatelessWidget {
   Widget _imgPlaceholder() => Container(
         color: AppColors.primary.withValues(alpha: 0.08),
         child: const Center(
-          child: Icon(Icons.fastfood_outlined,
-              color: AppColors.primary, size: 22),
+          child:
+              Icon(Icons.fastfood_outlined, color: AppColors.primary, size: 22),
         ),
       );
 }
@@ -413,8 +407,7 @@ class _QtyBtn extends StatelessWidget {
   final VoidCallback onTap;
   final bool filled;
 
-  const _QtyBtn(
-      {required this.icon, required this.onTap, this.filled = false});
+  const _QtyBtn({required this.icon, required this.onTap, this.filled = false});
 
   @override
   Widget build(BuildContext context) {
@@ -475,7 +468,12 @@ class _EmptyCart extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           ElevatedButton.icon(
-            onPressed: onBrowse ?? () => Navigator.pushNamedAndRemoveUntil(context, '/customer/home', (_) => false),
+            onPressed: onBrowse ??
+                () => Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/customer/home',
+                      (_) => false,
+                    ),
             icon: const Icon(Icons.storefront_outlined, size: 18),
             label: const Text('Browse Restaurants'),
             style: ElevatedButton.styleFrom(
@@ -486,10 +484,9 @@ class _EmptyCart extends StatelessWidget {
               maximumSize: const Size(220, 48),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 28, vertical: 14),
-              textStyle: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w600),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              textStyle:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
           ),
         ],

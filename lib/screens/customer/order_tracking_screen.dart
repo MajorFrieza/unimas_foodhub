@@ -23,8 +23,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initialOrder =
-        ModalRoute.of(context)!.settings.arguments as OrderModel;
+    _initialOrder = ModalRoute.of(context)!.settings.arguments as OrderModel;
     _sellerFuture = db.getSeller(_initialOrder.sellerId);
   }
 
@@ -608,8 +607,7 @@ class _PaymentQrCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(10),
@@ -619,8 +617,8 @@ class _PaymentQrCard extends StatelessWidget {
               children: [
                 const Text(
                   'Amount to pay: ',
-                  style: TextStyle(
-                      fontSize: 14, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 14, color: AppColors.textSecondary),
                 ),
                 Text(
                   'RM ${total.toStringAsFixed(2)}',
@@ -664,13 +662,30 @@ class _RatingCardState extends State<_RatingCard> {
   Future<void> _submit() async {
     if (_selected == 0) return;
     setState(() => _submitting = true);
-    await widget.db.rateOrder(
-      widget.order.id,
-      widget.order.sellerId,
-      _selected,
-      comment: _commentController.text,
-    );
-    // Stream will update order.rating — card swaps automatically
+    try {
+      await widget.db.rateOrder(
+        widget.order.id,
+        _selected,
+        comment: _commentController.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Thanks for your feedback!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not submit your rating: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   @override
@@ -702,8 +717,8 @@ class _RatingCardState extends State<_RatingCard> {
           const SizedBox(height: 4),
           Text(
             widget.order.stallName,
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.textSecondary),
+            style:
+                const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
           Row(
@@ -732,12 +747,12 @@ class _RatingCardState extends State<_RatingCard> {
             maxLength: 200,
             decoration: InputDecoration(
               hintText: 'Add a comment (optional)',
-              hintStyle: const TextStyle(
-                  fontSize: 13, color: AppColors.textHint),
+              hintStyle:
+                  const TextStyle(fontSize: 13, color: AppColors.textHint),
               filled: true,
               fillColor: AppColors.background,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.border),
@@ -751,8 +766,8 @@ class _RatingCardState extends State<_RatingCard> {
                 borderSide:
                     const BorderSide(color: AppColors.primary, width: 1.5),
               ),
-              counterStyle: const TextStyle(
-                  fontSize: 11, color: AppColors.textHint),
+              counterStyle:
+                  const TextStyle(fontSize: 11, color: AppColors.textHint),
             ),
           ),
           const SizedBox(height: 16),
@@ -825,9 +840,19 @@ class _CancelOrderButtonState extends State<_CancelOrderButton> {
     );
     if (confirmed != true) return;
     setState(() => _cancelling = true);
-    await widget.db
-        .updateOrderStatus(widget.order.id, AppConstants.statusCancelled);
-    // Stream will update status — button disappears automatically
+    try {
+      await widget.db
+          .updateOrderStatus(widget.order.id, AppConstants.statusCancelled);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _cancelling = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not cancel your order: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   @override
@@ -842,8 +867,8 @@ class _CancelOrderButtonState extends State<_CancelOrderButton> {
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.error,
             side: const BorderSide(color: AppColors.error),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
           child: _cancelling
               ? const SizedBox(

@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import '../models/seller_model.dart';
 import '../models/menu_item_model.dart';
 import '../models/order_model.dart';
@@ -124,9 +128,7 @@ class DatabaseService {
   }
 
   Future<void> deleteMenuItem(String sellerId, String itemId) async {
-    await _db
-        .ref('${AppConstants.menuItemsPath}/$sellerId/$itemId')
-        .remove();
+    await _db.ref('${AppConstants.menuItemsPath}/$sellerId/$itemId').remove();
   }
 
   Future<void> toggleMenuItemAvailability(
@@ -139,16 +141,13 @@ class DatabaseService {
   // ─── Orders ───────────────────────────────────────────────────────────────
 
   Future<String> placeOrder(OrderModel order) async {
-    final ref = _db.ref(AppConstants.ordersPath).push();
-    await ref.set(order.toMap());
-    return ref.key!;
+    final orderRef = _db.ref(AppConstants.ordersPath).push();
+    await orderRef.set(order.toMap());
+    return orderRef.key!;
   }
 
   Stream<OrderModel?> orderStream(String orderId) {
-    return _db
-        .ref('${AppConstants.ordersPath}/$orderId')
-        .onValue
-        .map((event) {
+    return _db.ref('${AppConstants.ordersPath}/$orderId').onValue.map((event) {
       if (event.snapshot.value == null) return null;
       return OrderModel.fromMap(
           orderId, event.snapshot.value as Map<dynamic, dynamic>);
@@ -181,12 +180,34 @@ class DatabaseService {
         .map((event) {
       if (event.snapshot.value == null) return [];
       final map = event.snapshot.value as Map<dynamic, dynamic>;
-      return map.entries
+      final orders = map.entries
           .map((entry) => OrderModel.fromMap(
               entry.key.toString(), entry.value as Map<dynamic, dynamic>))
           .toList()
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (FirebaseAuth.instance.currentUser?.uid == sellerId) {
+        unawaited(_syncSellerRating(sellerId, orders));
+      }
+      return orders;
     });
+  }
+
+  Future<void> _syncSellerRating(
+      String sellerId, List<OrderModel> orders) async {
+    final ratings =
+        orders.map((order) => order.rating).whereType<int>().toList();
+    if (ratings.isEmpty) return;
+
+    final average = double.parse(
+        (ratings.reduce((a, b) => a + b) / ratings.length).toStringAsFixed(1));
+    try {
+      final ratingRef = _db.ref('${AppConstants.sellersPath}/$sellerId/rating');
+      final currentRating = (await ratingRef.get()).value;
+      if (currentRating is num && currentRating.toDouble() == average) return;
+      await ratingRef.set(average);
+    } catch (error, stackTrace) {
+      debugPrint('Could not update seller rating: $error\n$stackTrace');
+    }
   }
 
   /// Returns orders for a seller that have both a rating and a comment.
@@ -200,42 +221,28 @@ class DatabaseService {
   }
 
   Future<void> updateOrderStatus(String orderId, String status) async {
-    await _db
-        .ref('${AppConstants.ordersPath}/$orderId/status')
-        .set(status);
+    await _db.ref('${AppConstants.ordersPath}/$orderId/status').set(status);
   }
 
-  /// Saves a rating (and optional comment) on the order then recalculates the seller's average.
-  Future<void> rateOrder(String orderId, String sellerId, int rating,
-      {String? comment}) async {
-    // 1. Write rating (and comment if provided) onto the order
+  /// Saves a rating and optional comment on a completed order.
+  Future<void> rateOrder(String orderId, int rating, {String? comment}) async {
+    if (rating < 1 || rating > 5) {
+      throw ArgumentError.value(rating, 'rating', 'Must be between 1 and 5');
+    }
+
+    final trimmedComment = comment?.trim();
+    if (trimmedComment != null && trimmedComment.length > 200) {
+      throw ArgumentError.value(
+        comment,
+        'comment',
+        'Must be 200 characters or fewer',
+      );
+    }
+
     final updates = <String, dynamic>{'rating': rating};
-    if (comment != null && comment.trim().isNotEmpty) {
-      updates['comment'] = comment.trim();
+    if (trimmedComment != null && trimmedComment.isNotEmpty) {
+      updates['comment'] = trimmedComment;
     }
     await _db.ref('${AppConstants.ordersPath}/$orderId').update(updates);
-
-    // 2. Fetch all orders for this seller and compute average of rated ones
-    final snap = await _db
-        .ref(AppConstants.ordersPath)
-        .orderByChild('sellerId')
-        .equalTo(sellerId)
-        .get();
-
-    if (!snap.exists) return;
-    final map = snap.value as Map<dynamic, dynamic>;
-    final ratings = map.values
-        .map((v) => (v as Map<dynamic, dynamic>)['rating'])
-        .where((r) => r != null)
-        .map((r) => (r as num).toDouble())
-        .toList();
-
-    if (ratings.isEmpty) return;
-    final avg = ratings.reduce((a, b) => a + b) / ratings.length;
-
-    // 3. Update seller's rating field
-    await _db
-        .ref('${AppConstants.sellersPath}/$sellerId/rating')
-        .set(double.parse(avg.toStringAsFixed(1)));
   }
 }

@@ -8,17 +8,19 @@ import '../utils/constants.dart';
 
 class CartProvider with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService();
-  final _uuid = const Uuid();
+  final Uuid _uuid = const Uuid();
 
   final List<CartItemModel> _items = [];
   String? _currentSellerId;
   String? _currentStallName;
   bool _isPlacingOrder = false;
+  String? _errorMessage;
 
   List<CartItemModel> get items => List.unmodifiable(_items);
   String? get currentSellerId => _currentSellerId;
   String? get currentStallName => _currentStallName;
   bool get isPlacingOrder => _isPlacingOrder;
+  String? get errorMessage => _errorMessage;
   bool get isEmpty => _items.isEmpty;
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
 
@@ -88,22 +90,10 @@ class CartProvider with ChangeNotifier {
     if (_items.isEmpty || _currentSellerId == null) return null;
 
     _isPlacingOrder = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
-      final pickupCode =
-          '${AppConstants.pickupPrefix}${_uuid.v4().substring(0, 4).toUpperCase()}';
-
-      final orderItems = _items
-          .map((c) => OrderItemSnapshot(
-                itemId: c.menuItem.id,
-                name: c.menuItem.name,
-                price: c.menuItem.price,
-                quantity: c.quantity,
-                subtotal: c.subtotal,
-              ))
-          .toList();
-
       final order = OrderModel(
         id: '',
         customerId: customerId,
@@ -113,29 +103,27 @@ class CartProvider with ChangeNotifier {
         status: AppConstants.statusPending,
         totalAmount: totalAmount,
         createdAt: DateTime.now(),
-        pickupCode: pickupCode,
-        items: orderItems,
+        pickupCode:
+            '${AppConstants.pickupPrefix}${_uuid.v4().substring(0, 4).toUpperCase()}',
+        items: _items
+            .map((item) => OrderItemSnapshot(
+                  itemId: item.menuItem.id,
+                  name: item.menuItem.name,
+                  price: item.menuItem.price,
+                  quantity: item.quantity,
+                  subtotal: item.subtotal,
+                ))
+            .toList(),
         note: note,
       );
-
-      final orderId = await _dbService.placeOrder(order);
-      final placedOrder = OrderModel(
-        id: orderId,
-        customerId: order.customerId,
-        customerName: order.customerName,
-        sellerId: order.sellerId,
-        stallName: order.stallName,
-        status: order.status,
-        totalAmount: order.totalAmount,
-        createdAt: order.createdAt,
-        pickupCode: order.pickupCode,
-        items: order.items,
-        note: order.note,
+      final placedOrder = await _dbService.placeOrder(
+        order,
       );
-
       clearCart();
-      return placedOrder;
-    } catch (_) {
+      return OrderModel.fromMap(placedOrder, order.toMap());
+    } catch (e, stackTrace) {
+      debugPrint('Order placement failed: $e\n$stackTrace');
+      _errorMessage = 'Unable to place your order. Please try again.';
       return null;
     } finally {
       _isPlacingOrder = false;

@@ -1,0 +1,58 @@
+{
+  "rules": {
+    "users": {
+      "$userId": {
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": "auth != null && auth.uid == $userId && newData.exists()",
+        ".validate": "newData.hasChildren(['name', 'email', 'phone', 'role', 'createdAt']) && newData.child('name').isString() && newData.child('email').isString() && newData.child('phone').isString() && newData.child('role').val() == 'customer' && newData.child('createdAt').isNumber()",
+        "favorites": {
+          "$sellerId": {
+            ".validate": "newData.isBoolean() && newData.val() == true && root.child('sellers').child($sellerId).exists()"
+          }
+        }
+      }
+    },
+    "sellers": {
+      ".read": "auth != null",
+      "$sellerId": {
+        ".write": "auth != null && auth.uid == $sellerId && newData.exists()",
+        ".validate": "newData.hasChildren(['stallName', 'ownerName', 'email', 'phone', 'description', 'isOpen', 'cuisineType', 'rating', 'createdAt', 'role']) && newData.child('role').val() == 'seller' && newData.child('stallName').isString() && newData.child('ownerName').isString() && newData.child('email').isString() && newData.child('phone').isString() && newData.child('description').isString() && newData.child('isOpen').isBoolean() && newData.child('cuisineType').isString() && newData.child('rating').isNumber() && newData.child('rating').val() >= 0 && newData.child('rating').val() <= 5 && newData.child('createdAt').isNumber()"
+      }
+    },
+    "menuItems": {
+      ".read": "auth != null",
+      "$sellerId": {
+        ".write": "auth != null && auth.uid == $sellerId && root.child('sellers').child($sellerId).exists()",
+        "$itemId": {
+          ".validate": "newData.hasChildren(['stallName', 'name', 'description', 'price', 'category', 'isAvailable', 'isPopular', 'prepTime', 'calories', 'createdAt']) && newData.child('stallName').isString() && newData.child('name').isString() && newData.child('description').isString() && newData.child('price').isNumber() && newData.child('price').val() >= 0 && newData.child('price').val() <= 999.99 && newData.child('category').isString() && newData.child('isAvailable').isBoolean() && newData.child('isPopular').isBoolean() && newData.child('prepTime').isNumber() && newData.child('calories').isNumber() && newData.child('createdAt').isNumber()"
+        }
+      }
+    },
+    "orders": {
+      ".indexOn": ["sellerId", "customerId"],
+      ".read": "auth != null && ((query.orderByChild == 'customerId' && query.equalTo == auth.uid) || (query.orderByChild == 'sellerId' && query.equalTo == auth.uid))",
+      "$orderId": {
+        ".read": "auth != null && (data.child('customerId').val() == auth.uid || data.child('sellerId').val() == auth.uid)",
+        ".write": "auth != null && !data.exists() && newData.child('customerId').val() == auth.uid && newData.child('status').val() == 'pending' && root.child('users').child(auth.uid).child('role').val() == 'customer' && newData.child('sellerId').isString() && root.child('sellers').child(newData.child('sellerId').val()).exists()",
+        ".validate": "newData.hasChildren(['customerId', 'customerName', 'sellerId', 'stallName', 'status', 'totalAmount', 'createdAt', 'pickupCode', 'items']) && newData.child('customerId').isString() && newData.child('customerName').isString() && newData.child('sellerId').isString() && newData.child('stallName').isString() && (newData.child('status').val() == 'pending' || newData.child('status').val() == 'confirmed' || newData.child('status').val() == 'preparing' || newData.child('status').val() == 'ready' || newData.child('status').val() == 'completed' || newData.child('status').val() == 'cancelled') && newData.child('totalAmount').isNumber() && newData.child('totalAmount').val() >= 0 && newData.child('createdAt').isNumber() && newData.child('pickupCode').isString() && newData.child('items').hasChildren() && ( !newData.child('note').exists() || (newData.child('note').isString() && newData.child('note').val().length <= 200))",
+        "status": {
+          ".write": "auth != null && ((data.parent().child('sellerId').val() == auth.uid && ((data.val() == 'pending' && newData.val() == 'confirmed') || (data.val() == 'confirmed' && newData.val() == 'preparing') || (data.val() == 'preparing' && newData.val() == 'ready') || (data.val() == 'ready' && newData.val() == 'completed') || ((data.val() == 'pending' || data.val() == 'confirmed' || data.val() == 'preparing' || data.val() == 'ready') && newData.val() == 'cancelled'))) || (data.parent().child('customerId').val() == auth.uid && data.val() == 'pending' && newData.val() == 'cancelled'))",
+          ".validate": "newData.isString() && (newData.val() == 'pending' || newData.val() == 'confirmed' || newData.val() == 'preparing' || newData.val() == 'ready' || newData.val() == 'completed' || newData.val() == 'cancelled')"
+        },
+        "items": {
+          "$itemId": {
+            ".validate": "newData.hasChildren(['name', 'price', 'quantity', 'subtotal']) && newData.child('price').isNumber() && newData.child('price').val() >= 0 && newData.child('price').val() <= 999.99 && newData.child('quantity').isNumber() && newData.child('quantity').val() >= 1 && newData.child('quantity').val() <= 99 && newData.child('subtotal').isNumber() && newData.child('subtotal').val() == newData.child('price').val() * newData.child('quantity').val() && (data.exists() || (newData.child('name').val() == root.child('menuItems').child(newData.parent().parent().child('sellerId').val()).child($itemId).child('name').val() && root.child('menuItems').child(newData.parent().parent().child('sellerId').val()).child($itemId).child('isAvailable').val() == true && root.child('menuItems').child(newData.parent().parent().child('sellerId').val()).child($itemId).child('price').val() == newData.child('price').val()))"
+          }
+        },
+        "rating": {
+          ".write": "auth != null && data.parent().child('customerId').val() == auth.uid && data.parent().child('status').val() == 'completed' && !data.exists()",
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
+        },
+        "comment": {
+          ".write": "auth != null && data.parent().child('customerId').val() == auth.uid && data.parent().child('status').val() == 'completed' && !data.exists()",
+          ".validate": "newData.isString() && newData.val().length <= 200"
+        }
+      }
+    }
+  }
+}
